@@ -6,9 +6,12 @@
     "dev": "astro dev",
     "start": "astro dev",
     "build": "astro build && npx pagefind --site dist",
-    "preview": "astro preview"
+    "preview": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy",
+    "cf-typegen": "wrangler types"
   },
   "dependencies": {
+    "@astrojs/cloudflare": "12",
     "@astrojs/mdx": "^4.2.0",
     "@astrojs/rss": "^4.0.0",
     "@astrojs/sitemap": "^3.3.0",
@@ -17,6 +20,7 @@
     "tailwindcss": "^3.4.0"
   },
   "devDependencies": {
-    "@pagefind/default-ui": "^1.5.2"
+    "@pagefind/default-ui": "^1.5.2",
+    "wrangler": "^4.85.0"
   }
 }
