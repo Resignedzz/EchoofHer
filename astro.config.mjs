@@ -4,7 +4,7 @@ import sitemap from '@astrojs/sitemap';
 import tailwind from '@astrojs/tailwind';
 
 export default defineConfig({
-  site: 'https://your-blog.pages.dev',
+  site: 'https://echoofher.pages.dev',
   integrations: [mdx(), sitemap(), tailwind()],
   markdown: {
     shikiConfig: {
