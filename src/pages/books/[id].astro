@@ -1,0 +1,73 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+
+export async function getStaticPaths() {
+  const books = await getCollection('books');
+  return books.map((book) => ({
+    params: { id: book.id },
+    props: { book },
+  }));
+}
+
+const { book } = Astro.props;
+const { Content } = await render(book);
+const { title, author, rating, tags, status, date } = book.data;
+
+const statusLabel = { reading: '在读', finished: '已读', wishlist: '想读' };
+const statusColor = { reading: 'var(--accent)', finished: 'var(--accent-secondary)', wishlist: 'var(--text-muted)' };
+
+function renderStars(rating: number) {
+  return '★'.repeat(rating) + '☆'.repeat(5 - rating);
+}
+
+const formatDate = (d: Date) =>
+  d.toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' });
+---
+
+<BaseLayout title={`${title} - 阅读笔记`} description={`《${title}》-${author} 的阅读笔记`}>
+  <Header />
+
+  <main class="flex-1 w-full max-w-3xl mx-auto px-4 py-12 sm:px-6">
+    <article class="prose-custom">
+      <!-- Book header -->
+      <header class="mb-10">
+        <div class="h-px w-16 mb-6" style="background: var(--gradient-accent);"></div>
+
+        <div class="flex items-center gap-3 mb-2">
+          <span class="text-xs font-mono px-2 py-0.5 rounded-full border text-sm" style="border-color: ${statusColor[status]}; color: ${statusColor[status]};">
+            {statusLabel[status]}
+          </span>
+          <span class="text-xs font-mono text-[var(--accent-secondary)]">{renderStars(rating)}</span>
+        </div>
+
+        <h1 class="text-2xl sm:text-3xl font-mono font-bold mb-2">{title}</h1>
+        <p class="text-[var(--text-muted)] font-mono text-sm">{author} · {formatDate(date)}</p>
+
+        {tags.length > 0 && (
+          <div class="flex flex-wrap gap-2 mt-4">
+            {tags.map(tag => (
+              <span class="text-xs font-mono px-2 py-0.5 rounded-full border border-[var(--border)] text-[var(--text-muted)]">
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </header>
+
+      <Content />
+    </article>
+
+    <!-- Back link -->
+    <a href="/books" class="inline-flex items-center gap-2 mt-12 text-sm font-mono text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>
+      </svg>
+      返回阅读清单
+    </a>
+  </main>
+
+  <Footer />
+</BaseLayout>

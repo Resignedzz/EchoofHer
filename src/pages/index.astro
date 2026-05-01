@@ -9,6 +9,15 @@ const posts = (await getCollection('blog', ({ data }) => !data.draft))
 
 const formatDate = (d: Date) =>
   d.toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' });
+
+// Get latest snippets and books for sidebar cards
+const snippets = (await getCollection('snippets'))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  .slice(0, 3);
+
+const books = (await getCollection('books'))
+  .filter(b => b.data.status === 'reading')
+  .slice(0, 2);
 ---
 
 <BaseLayout title="resigned's blog" description="A personal blog by resigned">
@@ -16,53 +25,158 @@ const formatDate = (d: Date) =>
 
   <main class="flex-1 w-full max-w-3xl mx-auto px-4 py-12 sm:px-6">
     <!-- Hero -->
-    <section class="mb-12">
-      <h1 class="font-mono text-4xl sm:text-5xl font-bold tracking-tight mb-3">
-        <span class="text-accent">&gt;</span> 你好，我是 <span class="text-accent">resigned</span>
-      </h1>
-      <p class="text-[var(--text-muted)] text-lg max-w-xl">
-        软件智能工程师。写代码、写想法、写生活。<br />
-        <span class="font-mono text-sm text-accent/70">cat /dev/random &gt; blog</span>
-      </p>
+    <section class="mb-16 animate-fade-in">
+      <div class="relative">
+        <!-- Decorative grid dot -->
+        <div class="absolute -top-6 -left-6 w-24 h-24 opacity-20 hidden sm:block" style="background-image: radial-gradient(var(--accent) 1px, transparent 1px); background-size: 8px 8px;"></div>
+
+        <h1 class="font-mono text-4xl sm:text-5xl font-bold tracking-tight mb-4">
+          <span class="text-[var(--accent)]">&gt;</span> 你好，我是 <span class="text-gradient">resigned</span>
+        </h1>
+        <p class="text-[var(--text-muted)] text-lg max-w-xl leading-relaxed mb-4">
+          软件智能工程师。写代码、写想法、写生活。
+        </p>
+        <div class="flex items-center gap-2 font-mono text-sm">
+          <span style="color: var(--accent-secondary);">cat /dev/random &gt; blog</span>
+          <span class="cursor-blink text-[var(--accent)]">█</span>
+        </div>
+
+        <!-- Status badges -->
+        <div class="flex items-center gap-3 mt-6 flex-wrap">
+          <a href="/archive" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] hover:bg-[var(--accent-dim)] transition-all">
+            <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse"></span>
+            {posts.length} 篇文章
+          </a>
+          <a href="/snippets" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent-secondary)] hover:text-[var(--accent-secondary)] hover:bg-[var(--accent-secondary-dim)] transition-all">
+            {snippets.length} 段代码
+          </a>
+          <a href="/books" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent-secondary)] hover:text-[var(--accent-secondary)] hover:bg-[var(--accent-secondary-dim)] transition-all">
+            📖 阅读清单
+          </a>
+        </div>
+      </div>
     </section>
 
-    <!-- Post list -->
-    <section>
-      <h2 class="font-mono text-sm font-bold text-[var(--text-muted)] uppercase tracking-wider mb-6 flex items-center gap-2">
-        <span class="text-accent">#</span> 最新文章
-      </h2>
+    <div class="lg:flex lg:gap-12">
+      <!-- Main content -->
+      <div class="lg:flex-1 min-w-0">
+        <!-- Posts -->
+        <section class="mb-12 animate-fade-in animate-delay-1">
+          <h2 class="font-mono text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-5 flex items-center gap-2">
+            <span class="text-[var(--accent)]">#</span> 最新文章
+            <span class="ml-auto text-[10px] font-normal normal-case tracking-normal opacity-50">{posts.length} 篇</span>
+          </h2>
 
-      <div class="space-y-1">
-        {posts.map((post) => (
-          <a
-            href={`/blog/${post.id}`}
-            class="group flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 px-3 py-3 rounded-lg hover:bg-[var(--border)] transition-all"
-          >
-            <time class="text-sm font-mono text-[var(--text-muted)] shrink-0 w-28">
-              {formatDate(post.data.date)}
-            </time>
-            <h3 class="font-medium group-hover:text-accent transition-colors">
-              {post.data.title}
-            </h3>
-            {post.data.tags && post.data.tags.length > 0 && (
-              <div class="hidden sm:flex items-center gap-2 ml-auto">
-                {post.data.tags.slice(0, 2).map(tag => (
-                  <span class="text-xs font-mono text-[var(--text-muted)]">
-                    #{tag}
-                  </span>
-                ))}
-              </div>
-            )}
-          </a>
-        ))}
+          {posts.length > 0 ? (
+            <div class="space-y-0.5">
+              {posts.map((post) => (
+                <a
+                  href={`/blog/${post.id}`}
+                  class="post-row group flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-4 px-4 py-3.5 rounded-lg transition-all hover:bg-[var(--accent-dim)]"
+                >
+                  <time class="text-xs font-mono text-[var(--text-muted)] shrink-0 w-24 tabular-nums">
+                    {formatDate(post.data.date)}
+                  </time>
+                  <div class="flex-1 min-w-0">
+                    <h3 class="font-semibold text-[var(--text)] group-hover:text-[var(--accent)] transition-colors truncate">
+                      {post.data.title}
+                    </h3>
+                    {post.data.description && (
+                      <p class="text-xs text-[var(--text-muted)] mt-0.5 line-clamp-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        {post.data.description}
+                      </p>
+                    )}
+                  </div>
+                  <div class="hidden sm:flex items-center gap-1.5 ml-auto shrink-0">
+                    {post.data.tags && post.data.tags.slice(0, 2).map(tag => (
+                      <span class="text-[10px] font-mono text-[var(--text-muted)] group-hover:text-[var(--accent-secondary)] transition-colors">
+                        #{tag}
+                      </span>
+                    ))}
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-0.5">
+                      <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+                    </svg>
+                  </div>
+                </a>
+              ))}
+            </div>
+          ) : (
+            <div class="text-center py-16 cyber-card">
+              <p class="font-mono text-sm text-[var(--text-muted)] mb-2">// 还没有文章</p>
+              <p class="font-mono text-xs text-[var(--text-muted)] opacity-60">等待第一篇博客的诞生 ✍️</p>
+            </div>
+          )}
+        </section>
       </div>
 
-      {posts.length === 0 && (
-        <p class="text-[var(--text-muted)] text-center py-12 font-mono text-sm">
-          // 还没有文章，开始写第一篇吧 ✍️
-        </p>
-      )}
-    </section>
+      <!-- Sidebar -->
+      <aside class="hidden lg:block lg:w-56 shrink-0 animate-fade-in animate-delay-2">
+        <div class="sticky top-20 space-y-6">
+          <!-- Status -->
+          <div class="cyber-card p-4">
+            <div class="font-mono text-[10px] text-[var(--text-muted)] uppercase tracking-widest mb-3 flex items-center gap-2">
+              <span class="text-[var(--accent)]">$</span> status
+            </div>
+            <div class="space-y-2.5 font-mono text-xs">
+              <div class="flex items-center justify-between">
+                <span class="text-[var(--text-muted)]">blog</span>
+                <span class="flex items-center gap-1.5 text-[var(--accent)]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" style="box-shadow: 0 0 6px var(--accent);"></span>
+                  online
+                </span>
+              </div>
+              <div class="h-px" style="background: var(--border);"></div>
+              <div class="flex items-center justify-between">
+                <span class="text-[var(--text-muted)]">posts</span>
+                <span class="text-[var(--text)] tabular-nums">{posts.length}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-[var(--text-muted)]">snippets</span>
+                <span class="text-[var(--text)] tabular-nums">{snippets.length}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick links -->
+          <div class="cyber-card p-4">
+            <div class="font-mono text-[10px] text-[var(--text-muted)] uppercase tracking-widest mb-3 flex items-center gap-2">
+              <span class="text-[var(--accent-secondary)]">@</span> quick links
+            </div>
+            <nav class="space-y-1">
+              {[
+                { href: '/snippets', label: '代码片段', icon: '◈' },
+                { href: '/books', label: '阅读清单', icon: '◈' },
+                { href: '/projects', label: '项目', icon: '◈' },
+                { href: '/archive', label: '归档', icon: '◈' },
+                { href: '/about', label: '关于', icon: '◈' },
+              ].map(link => (
+                <a href={link.href} class="flex items-center gap-2 text-xs font-mono text-[var(--text-muted)] hover:text-[var(--accent)] hover:translate-x-1 transition-all px-1 py-1 rounded">
+                  <span class="text-[8px] opacity-40">{link.icon}</span>
+                  {link.label}
+                </a>
+              ))}
+            </nav>
+          </div>
+
+          <!-- Now reading -->
+          {books.length > 0 && (
+            <div class="cyber-card p-4">
+              <div class="font-mono text-[10px] text-[var(--text-muted)] uppercase tracking-widest mb-3 flex items-center gap-2">
+                <span style="color: var(--accent-secondary);">📖</span> reading
+              </div>
+              <div class="space-y-2">
+                {books.map(book => (
+                  <a href={`/books/${book.id}`} class="block group">
+                    <p class="text-xs font-mono font-medium text-[var(--text)] group-hover:text-[var(--accent)] transition-colors truncate">{book.data.title}</p>
+                    <p class="text-[10px] text-[var(--text-muted)] truncate">{book.data.author}</p>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </aside>
+    </div>
   </main>
 
   <Footer />

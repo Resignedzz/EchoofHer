@@ -3,6 +3,7 @@ import BaseLayout from './BaseLayout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import Giscus from '../components/Giscus.astro';
+import AISummary from '../components/AISummary.astro';
 
 export interface Props {
   frontmatter: {
@@ -12,9 +13,10 @@ export interface Props {
     updated?: Date;
     tags?: string[];
   };
+  slug?: string;
 }
 
-const { frontmatter } = Astro.props;
+const { frontmatter, slug } = Astro.props;
 const { title, description, date, updated, tags = [] } = frontmatter;
 
 const formatDate = (d: Date) => {
@@ -23,50 +25,179 @@ const formatDate = (d: Date) => {
 ---
 
 <BaseLayout title={`${title} — resigned's blog`} description={description}>
+  <!-- Reading progress bar -->
+  <div id="reading-progress"></div>
+
   <Header />
 
+  <!-- RSS Banner -->
+  <div id="rss-banner" class="sticky top-14 z-40 border-b border-[var(--accent)]/20" style="background: rgba(0, 255, 136, 0.08); backdrop-filter: blur(12px);">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
+      <p class="text-xs font-mono text-[var(--text-muted)]">
+        <span class="text-[var(--accent)]">📡</span> 喜欢这篇文章？通过 <a href="/rss.xml" class="text-[var(--accent)] hover:underline">RSS</a> 订阅更新
+      </p>
+      <button id="rss-close" class="text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors text-lg leading-none" aria-label="关闭">
+        ×
+      </button>
+    </div>
+  </div>
+
   <main class="flex-1 w-full max-w-3xl mx-auto px-4 py-12 sm:px-6">
-    <article class="prose-custom">
-      <!-- Post header -->
-      <header class="mb-10">
-        <h1 class="text-3xl sm:text-4xl font-mono font-bold mb-4 leading-tight">{title}</h1>
+    <div class="lg:flex lg:gap-12">
+      <!-- Main content -->
+      <div class="lg:flex-1 min-w-0">
+        <article class="prose-custom">
+          <!-- Post header -->
+          <header class="mb-10">
+            <div class="h-px w-16 mb-6" style="background: var(--gradient-accent);"></div>
+            <h1 class="text-3xl sm:text-4xl font-mono font-bold mb-4 leading-tight">
+              {title}
+            </h1>
 
-        <div class="flex items-center gap-3 text-sm text-[var(--text-muted)]">
-          <time datetime={date.toISOString()}>{formatDate(date)}</time>
-          {updated && (
-            <>
-              <span>·</span>
-              <span>更新于 <time datetime={updated.toISOString()}>{formatDate(updated)}</time></span>
-            </>
-          )}
+            <div class="flex items-center gap-3 text-sm text-[var(--text-muted)] font-mono">
+              <time datetime={date.toISOString()}>{formatDate(date)}</time>
+              {updated && (
+                <>
+                  <span style="color: var(--accent-secondary);">·</span>
+                  <span>更新于 <time datetime={updated.toISOString()}>{formatDate(updated)}</time></span>
+                </>
+              )}
+              <span class="text-[var(--border)]">|</span>
+              <span class="flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="opacity-50"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                <span id="reading-time" class="opacity-60">加载中...</span>
+              </span>
+            </div>
+
+            {tags.length > 0 && (
+              <div class="flex flex-wrap gap-2 mt-4">
+                {tags.map(tag => (
+                  <a
+                    href={`/tags/${tag}`}
+                    class="tag-pill"
+                  >
+                    #{tag}
+                  </a>
+                ))}
+              </div>
+            )}
+          </header>
+
+          <!-- AI Summary -->
+          {slug && <AISummary slug={slug} />}
+
+          <!-- Post content -->
+          <slot />
+        </article>
+
+        <!-- Comments -->
+        <div class="mt-16 border-t border-[var(--border)] pt-8">
+          <h2 class="font-mono text-lg font-bold mb-6 flex items-center gap-2">
+            <span class="text-[var(--accent-secondary)]">//</span> Comments
+          </h2>
+          <Giscus />
         </div>
+      </div>
 
-        {tags.length > 0 && (
-          <div class="flex flex-wrap gap-2 mt-4">
-            {tags.map(tag => (
-              <a
-                href={`/tags/${tag}`}
-                class="px-2.5 py-1 text-xs font-mono rounded-full border border-[var(--border)] text-[var(--text-muted)] hover:border-accent hover:text-accent transition-colors"
-              >
-                #{tag}
-              </a>
-            ))}
-          </div>
-        )}
-      </header>
-
-      <!-- Post content -->
-      <slot />
-    </article>
-
-    <!-- Comments -->
-    <div class="mt-16 border-t border-[var(--border)] pt-8">
-      <h2 class="font-mono text-lg font-bold mb-6 flex items-center gap-2">
-        <span class="text-accent">//</span> Comments
-      </h2>
-      <Giscus />
+      <!-- TOC Sidebar -->
+      <aside class="hidden lg:block lg:w-52 shrink-0">
+        <nav id="toc-nav" class="sticky top-36">
+          <h2 class="font-mono text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-4 flex items-center gap-2">
+            <span class="text-[var(--accent)]">#</span> 目录
+          </h2>
+          <ul id="toc-list" class="space-y-2 text-sm border-l border-[var(--border)] pl-4"></ul>
+        </nav>
+      </aside>
     </div>
   </main>
 
   <Footer />
 </BaseLayout>
+
+<script>
+  // Reading progress bar
+  const progressBar = document.getElementById('reading-progress');
+  const updateProgress = () => {
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+    if (progressBar) progressBar.style.width = progress + '%';
+  };
+  window.addEventListener('scroll', updateProgress, { passive: true });
+  updateProgress();
+
+  // Reading time estimate
+  const article = document.querySelector('article');
+  const readingTimeEl = document.getElementById('reading-time');
+  if (article && readingTimeEl) {
+    const text = article.textContent || '';
+    const wordCount = text.replace(/\s/g, '').length;
+    // Chinese: ~300 chars/min, English: ~200 words/min
+    const minutes = Math.ceil(wordCount / 300);
+    readingTimeEl.textContent = minutes < 1 ? '< 1 分钟' : `约 ${minutes} 分钟`;
+  }
+
+  // RSS banner dismiss
+  const rssBanner = document.getElementById('rss-banner');
+  const rssClose = document.getElementById('rss-close');
+  if (rssBanner && rssClose) {
+    if (localStorage.getItem('rss-banner-dismissed')) {
+      rssBanner.classList.add('hidden');
+    }
+    rssClose.addEventListener('click', () => {
+      rssBanner.classList.add('hidden');
+      localStorage.setItem('rss-banner-dismissed', '1');
+    });
+  }
+
+  // TOC generation
+  const tocList = document.getElementById('toc-list');
+
+  if (article && tocList) {
+    const headings = article.querySelectorAll('h2, h3');
+
+    if (headings.length > 0) {
+      headings.forEach((heading, index) => {
+        const id = `toc-${index}`;
+        heading.id = id;
+
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = `#${id}`;
+        a.textContent = heading.textContent || '';
+        a.className = heading.tagName === 'H3'
+          ? 'block text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors text-xs pl-2'
+          : 'block text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors font-medium';
+
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+
+        li.appendChild(a);
+        tocList.appendChild(li);
+      });
+
+      // Active section highlight on scroll
+      const tocLinks = tocList.querySelectorAll('a');
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              tocLinks.forEach((link) => link.classList.remove('text-[var(--accent)]'));
+              const activeLink = tocList.querySelector(`a[href="#${entry.target.id}"]`);
+              activeLink?.classList.add('text-[var(--accent)]');
+            }
+          });
+        },
+        { rootMargin: '-20% 0px -80% 0px' }
+      );
+
+      headings.forEach((h) => observer.observe(h));
+    } else {
+      // No headings, hide TOC
+      const tocNav = document.getElementById('toc-nav');
+      tocNav?.classList.add('hidden');
+    }
+  }
+</script>

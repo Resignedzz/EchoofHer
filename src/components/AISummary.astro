@@ -1,0 +1,35 @@
+---
+// AI Summary Card component
+// Reads cached summary from src/data/summaries/<slug>.json
+
+interface Props {
+  slug: string;
+}
+
+const { slug } = Astro.props;
+
+let summary: string | null = null;
+try {
+  const mod = await import(`../../data/summaries/${slug}.json`);
+  summary = mod.default?.summary || mod.summary || null;
+} catch {
+  // No summary generated yet
+}
+---
+
+{summary && (
+  <div class="cyber-card mb-8 relative overflow-hidden">
+    <!-- Glow effect -->
+    <div class="absolute top-0 right-0 w-32 h-32 rounded-full opacity-10" style="background: var(--gradient-accent); filter: blur(40px);"></div>
+
+    <div class="relative">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-sm">🤖</span>
+        <h3 class="font-mono text-xs font-bold text-[var(--accent)] uppercase tracking-wider">AI 摘要</h3>
+      </div>
+      <p class="text-sm text-[var(--text-muted)] leading-relaxed italic">
+        {summary}
+      </p>
+    </div>
+  </div>
+)}

@@ -1,0 +1,56 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+
+export async function getStaticPaths() {
+  const snippets = await getCollection('snippets');
+  return snippets.map((snippet) => ({
+    params: { id: snippet.id },
+    props: { snippet },
+  }));
+}
+
+const { snippet } = Astro.props;
+const { Content } = await render(snippet);
+const { title, description, language, tags, date } = snippet.data;
+
+const formatDate = (d: Date) =>
+  d.toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' });
+---
+
+<BaseLayout title={`${title} — resigned's blog`} description={description}>
+  <Header />
+
+  <main class="flex-1 w-full max-w-3xl mx-auto px-4 py-12 sm:px-6">
+    <article class="prose-custom">
+      <!-- Snippet header -->
+      <header class="mb-8">
+        <div class="h-px w-16 mb-6" style="background: var(--gradient-accent);"></div>
+        <h1 class="text-2xl sm:text-3xl font-mono font-bold mb-3">{title}</h1>
+        <div class="flex items-center gap-3 text-sm text-[var(--text-muted)] font-mono flex-wrap">
+          <time>{formatDate(date)}</time>
+          {language && (
+            <span class="px-2 py-0.5 rounded-full border border-[var(--accent-secondary)] text-[var(--accent-secondary)]">{language}</span>
+          )}
+          {tags.map(tag => (
+            <span>#{tag}</span>
+          ))}
+        </div>
+      </header>
+
+      <Content />
+    </article>
+
+    <!-- Back link -->
+    <a href="/snippets" class="inline-flex items-center gap-2 mt-12 text-sm font-mono text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>
+      </svg>
+      返回代码片段
+    </a>
+  </main>
+
+  <Footer />
+</BaseLayout>

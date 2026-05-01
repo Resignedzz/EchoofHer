@@ -1,0 +1,484 @@
+---
+// 网易云音乐 - 赛博朋克黑胶唱片播放器 v6
+// iframe 负责播放，组件负责视觉（封面轮播 · 歌词滚动 · 动画）
+
+interface Props {
+  playlistId?: number;
+}
+
+interface LyricLine { time: number; text: string }
+interface TrackInfo {
+  id: number;
+  name: string;
+  artist: string;
+  cover: string;
+  duration: number;
+  lyrics: LyricLine[];
+}
+
+const { playlistId = 2953785286 } = Astro.props;
+const neteaseUrl = `https://music.163.com/#/playlist?id=${playlistId}`;
+const embedSrc = `//music.163.com/outchain/player?type=0&id=${playlistId}&auto=0&height=250`;
+
+// ── Helpers ──
+function parseLRC(lrc: string): LyricLine[] {
+  const out: LyricLine[] = [];
+  for (const line of lrc.split('\n')) {
+    const m = line.match(/\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/);
+    if (m) {
+      const ms = parseInt(m[1]) * 60000 + parseInt(m[2]) * 1000 + parseInt(m[3].padEnd(3, '0'));
+      const text = m[4].trim();
+      if (text) out.push({ time: ms, text });
+    }
+  }
+  return out;
+}
+
+async function fetchLyrics(songId: number): Promise<LyricLine[]> {
+  try {
+    const r = await fetch(
+      `https://music.163.com/api/song/lyric?id=${songId}&lv=1`,
+      { headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://music.163.com' } }
+    );
+    const d = await r.json();
+    return parseLRC(d.lrc?.lyric || '');
+  } catch { return []; }
+}
+
+// ── Fetch playlist + lyrics ──
+let playlistName = '♪ 歌单';
+let coverImgUrl = '';
+let firstTrackArtist = '';
+let tracks: TrackInfo[] = [];
+
+try {
+  const res = await fetch(
+    `https://music.163.com/api/v3/playlist/detail?id=${playlistId}&n=100000`,
+    { headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://music.163.com' } }
+  );
+  const data = await res.json();
+  const pl = data.playlist;
+
+  if (pl?.coverImgUrl) coverImgUrl = pl.coverImgUrl.replace('http:', 'https:') + '?param=200y200';
+  if (pl?.name) playlistName = '♪ ' + pl.name;
+
+  // v3 API only returns ~6 full tracks; use trackIds + v1 batch API for the rest
+  let rawTracks = pl?.tracks || [];
+  const trackIds = pl?.trackIds?.map((t: any) => t.id) || [];
+  const fetchCount = Math.min(trackIds.length, 50);
+
+  if (rawTracks.length < fetchCount && trackIds.length > 0) {
+    const existingIds = new Set(rawTracks.map((t: any) => t.id));
+    const missingIds = trackIds.filter((id: number) => !existingIds.has(id)).slice(0, fetchCount - rawTracks.length);
+    // Batch in chunks of 50 (v1 API limit)
+    for (let i = 0; i < missingIds.length; i += 50) {
+      try {
+        const batchIds = missingIds.slice(i, i + 50);
+        const detailRes = await fetch(
+          `https://music.163.com/api/song/detail?ids=${JSON.stringify(batchIds)}`,
+          { headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://music.163.com' } }
+        );
+        const detailData = await detailRes.json();
+        // v1 API returns different field names; normalize to v3 format
+        const normalized = (detailData.songs || []).map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          ar: s.artists?.map((a: any) => ({ name: a.name })) || [],
+          al: { picUrl: s.album?.picUrl },
+          dt: s.duration,
+        }));
+        rawTracks = rawTracks.concat(normalized);
+      } catch { /* skip failed batch */ }
+    }
+  }
+
+  const lyricsLimit = Math.min(rawTracks.length, 20);
+
+  const lyricsResults = await Promise.allSettled(
+    rawTracks.slice(0, lyricsLimit).map(t => fetchLyrics(t.id))
+  );
+
+  tracks = rawTracks.slice(0, fetchCount).map((t, i) => ({
+    id: t.id || 0,
+    name: t.name || '',
+    artist: t.ar?.map((a: any) => a.name).join(', ') || '',
+    cover: (t.al?.picUrl || '').replace('http:', 'https:') + '?param=200y200',
+    duration: t.dt || 200000,
+    lyrics: i < lyricsLimit && lyricsResults[i].status === 'fulfilled'
+      ? lyricsResults[i].value : [],
+  }));
+
+  if (rawTracks.length > 0) {
+    firstTrackArtist = rawTracks[0].ar?.map((a: any) => a.name).join(', ') || '';
+  }
+} catch {
+  playlistName = '♪ 网易云歌单';
+  firstTrackArtist = 'playlist#' + playlistId;
+}
+
+const tracksJson = JSON.stringify(tracks);
+---
+
+<div id="np-root" class="flex flex-col items-end">
+  <!-- ─── Panel (display + iframe player) ─── -->
+  <div id="np-panel"
+    class="hidden mb-2 w-[310px] rounded-xl overflow-hidden transition-all duration-300 origin-bottom-right"
+    style="background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 0 40px rgba(0,255,136,0.06), 0 -4px 30px rgba(0,0,0,0.4);">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between px-3 py-2 border-b border-[var(--border)]">
+      <div class="flex items-center gap-2">
+        <span id="np-dot" class="w-2 h-2 rounded-full bg-[var(--accent)]" style="box-shadow: 0 0 6px var(--accent);"></span>
+        <span class="font-mono text-[10px] text-[var(--text-muted)]">{playlistName}</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <button id="np-tab-player" class="np-tab active font-mono text-[10px] px-2 py-0.5 rounded transition-colors" data-tab="player">播放器</button>
+        <button id="np-tab-lyrics" class="np-tab font-mono text-[10px] px-2 py-0.5 rounded transition-colors" data-tab="lyrics">歌词</button>
+        <a href={neteaseUrl} target="_blank" rel="noopener" class="font-mono text-[10px] text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors opacity-40 hover:opacity-100 ml-1">↗</a>
+      </div>
+    </div>
+
+    <!-- Now-playing info (visual only) -->
+    <div id="np-now-bar" class="hidden px-3 py-2 border-b border-[var(--border)]">
+      <div class="flex items-center gap-2">
+        <img id="np-bar-cover" src="" alt="" class="w-7 h-7 rounded object-cover flex-shrink-0" style="background: var(--bg);" />
+        <div class="min-w-0 flex-1">
+          <p id="np-bar-name" class="font-mono text-[11px] text-[var(--text)] truncate leading-tight">--</p>
+          <p id="np-bar-artist" class="font-mono text-[9px] text-[var(--text-muted)] truncate opacity-60 leading-tight mt-0.5">--</p>
+        </div>
+        <span id="np-bar-index" class="font-mono text-[9px] text-[var(--text-muted)] opacity-30 flex-shrink-0">1/1</span>
+      </div>
+    </div>
+
+    <!-- Iframe playlist player (default tab) -->
+    <div id="np-iframe-wrap">
+      <iframe id="np-player-iframe" frameborder="no" border="0" marginwidth="0" marginheight="0" width="310" height="330" src={embedSrc}
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-autoplay"
+        allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
+    </div>
+
+    <!-- Lyrics section (alternate tab) -->
+    <div id="np-lyrics" class="hidden">
+      <div id="np-lyrics-scroll" class="overflow-y-auto h-[330px] scroll-smooth" style="scrollbar-width: thin; scrollbar-color: var(--border) transparent;">
+        <div class="h-[120px]"></div>
+        <p class="font-mono text-[10px] text-[var(--text-muted)] opacity-30 text-center">♪</p>
+        <div class="h-[120px]"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Tooltip ─── -->
+  <div id="np-tooltip" class="absolute bottom-full right-0 mb-3 w-52 opacity-0 pointer-events-none transition-all duration-300 translate-y-2 z-10">
+    <div class="rounded-lg p-3 text-xs" style="background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 0 30px rgba(0,255,136,0.08);">
+      <div class="font-mono text-[10px] text-[var(--text-muted)] mb-1.5 flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" style="box-shadow: 0 0 6px var(--accent);"></span>
+        now_playing
+      </div>
+      <p id="np-tip-name" class="font-mono text-sm text-[var(--text)] truncate mb-1">{playlistName}</p>
+      <p id="np-tip-artist" class="font-mono text-[10px] text-[var(--text-muted)] truncate opacity-60">{firstTrackArtist || '--'}</p>
+      <div class="h-px my-2" style="background: var(--border);"></div>
+      <p class="font-mono text-[10px] text-[var(--text-muted)] opacity-30">⏮ 封面切换 ⏭ · 双击打开 ↗</p>
+    </div>
+  </div>
+
+  <!-- ─── Control bar: ⏮ [vinyl] ⏭ ─── -->
+  <div id="np-controls" class="flex items-center gap-1.5">
+    <button id="np-btn-prev"
+      class="w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200 text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-white/5 active:scale-90"
+      title="上一首封面" aria-label="上一首封面">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+    </button>
+
+    <button id="np-circle"
+      class="relative w-[60px] h-[60px] sm:w-[68px] sm:h-[68px] rounded-full overflow-visible transition-all duration-300 hover:scale-105 cursor-pointer flex-shrink-0"
+      title="单击打开面板，双击打开网易云" aria-label="音乐播放器">
+      <div class="absolute inset-0 rounded-full" style="background: conic-gradient(from 0deg, #1a1a2e, #0d0d18, #1a1a2e, #0d0d18, #1a1a2e); box-shadow: 0 2px 15px rgba(0,0,0,0.6), inset 0 0 30px rgba(0,0,0,0.3);">
+        <div class="absolute inset-1 rounded-full" style="background: repeating-radial-gradient(circle at center, transparent 0px, transparent 3px, rgba(255,255,255,0.03) 3px, rgba(255,255,255,0.03) 4px);"></div>
+        <div class="absolute inset-2 rounded-full" style="background: repeating-radial-gradient(circle at center, transparent 0px, transparent 4px, rgba(255,255,255,0.02) 4px, rgba(255,255,255,0.02) 5px);"></div>
+        <div class="absolute inset-0 rounded-full" style="background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 40%, transparent 60%, rgba(255,255,255,0.03) 100%);"></div>
+      </div>
+      <div id="np-cover-wrap" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[28px] h-[28px] sm:w-[32px] sm:h-[32px] rounded-full overflow-hidden border-2 border-[#0d0d18] z-[2]" style="box-shadow: inset 0 0 4px rgba(0,0,0,0.5);">
+        <img id="np-cover" src={coverImgUrl || '/favicon.svg'} alt="" class="w-full h-full object-cover absolute inset-0 scale-110" style="transition: opacity 0.7s ease; opacity: 1;" />
+        <div id="np-icon" class="absolute inset-0 flex items-center justify-center" style="background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%); opacity: 1; transition: opacity 0.5s;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="rgba(0,0,0,0.7)" stroke="none"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        </div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full z-[3]" style="background: #0d0d18; box-shadow: inset 0 1px 2px rgba(0,0,0,0.8);"></div>
+      </div>
+      <div id="np-rings" class="absolute pointer-events-none opacity-0 transition-opacity duration-500" style="inset: -4px; border-radius: 9999px;">
+        <div class="absolute inset-0 rounded-full np-glow-ring" style="border: 1px solid rgba(0,255,136,0.25); box-shadow: 0 0 12px rgba(0,255,136,0.15);"></div>
+      </div>
+    </button>
+
+    <button id="np-btn-next"
+      class="w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200 text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-white/5 active:scale-90"
+      title="下一首封面" aria-label="下一首封面">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zm-10 0 8.5 6L6 18z"/></svg>
+    </button>
+  </div>
+</div>
+
+<style>
+  @keyframes cover-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes glow-ring-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes dot-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .np-tab { color: var(--text-muted); background: transparent; cursor: pointer; }
+  .np-tab.active { color: var(--accent); background: rgba(0,255,136,0.08); }
+
+  .np-lyric-line {
+    font-family: var(--font-mono, monospace);
+    font-size: 13px;
+    color: var(--text-muted);
+    padding: 4px 16px;
+    transition: all 0.4s ease;
+    opacity: 0.4;
+    line-height: 1.8;
+  }
+  .np-lyric-line.active {
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 1;
+    text-shadow: 0 0 12px rgba(0,255,136,0.3);
+  }
+</style>
+
+<script define:vars={{ playlistId, neteaseUrl, coverImgUrl, tracksJson }}>
+  // ── DOM refs ──
+  const root = document.getElementById('np-root');
+  const controls = document.getElementById('np-controls');
+  const circle = document.getElementById('np-circle');
+  const panel = document.getElementById('np-panel');
+  const tooltip = document.getElementById('np-tooltip');
+  const rings = document.getElementById('np-rings');
+  const coverIcon = document.getElementById('np-icon');
+  const coverImg = document.getElementById('np-cover');
+  const tipName = document.getElementById('np-tip-name');
+  const tipArtist = document.getElementById('np-tip-artist');
+  const nowBar = document.getElementById('np-now-bar');
+  const barCover = document.getElementById('np-bar-cover');
+  const barName = document.getElementById('np-bar-name');
+  const barArtist = document.getElementById('np-bar-artist');
+  const barIndex = document.getElementById('np-bar-index');
+  const dot = document.getElementById('np-dot');
+  const lyricsScroll = document.getElementById('np-lyrics-scroll');
+  const lyricsSection = document.getElementById('np-lyrics');
+  const iframeWrap = document.getElementById('np-iframe-wrap');
+  const tabPlayer = document.getElementById('np-tab-player');
+  const tabLyrics = document.getElementById('np-tab-lyrics');
+  const btnPrev = document.getElementById('np-btn-prev');
+  const btnNext = document.getElementById('np-btn-next');
+
+  const tracks = JSON.parse(tracksJson);
+  const hasTracks = tracks.length > 0;
+
+  let panelOpen = false;
+  let currentTrackIdx = 0;
+  let trackStartTime = 0;
+  let cycleTimer = null;
+  let lyricsTimer = null;
+  let activeTab = 'player';
+
+  if (coverImgUrl && coverIcon) coverIcon.style.opacity = '0';
+
+  // ════════════════════════════════════════
+  // Visual display engine (no iframe control)
+  // ════════════════════════════════════════
+
+  function updateTrackDisplay(idx) {
+    if (!hasTracks || idx < 0 || idx >= tracks.length) return;
+    const t = tracks[idx];
+
+    // Vinyl cover crossfade
+    if (t.cover) {
+      coverImg.style.opacity = '0';
+      setTimeout(() => {
+        coverImg.src = t.cover;
+        coverImg.style.opacity = '1';
+        coverIcon.style.opacity = '0';
+      }, 350);
+    }
+
+    // Pulse glow
+    circle.style.transition = 'filter 0.15s ease';
+    circle.style.filter = 'drop-shadow(0 0 20px rgba(0,255,136,0.45))';
+    setTimeout(() => {
+      circle.style.filter = panelOpen ? 'drop-shadow(0 0 15px rgba(0,255,136,0.2))' : '';
+    }, 350);
+
+    // Tooltip
+    if (tipName) tipName.textContent = t.name;
+    if (tipArtist) tipArtist.textContent = t.artist;
+
+    // Now-playing bar
+    if (barCover && t.cover) barCover.src = t.cover;
+    if (barName) barName.textContent = t.name;
+    if (barArtist) barArtist.textContent = t.artist;
+    if (barIndex) barIndex.textContent = `${idx + 1}/${tracks.length}`;
+
+    // Lyrics
+    renderLyrics(t.lyrics);
+    currentTrackIdx = idx;
+  }
+
+  // ── Timer-based cover cycling ──
+  function scheduleNext(idx) {
+    if (!hasTracks) return;
+    const dur = tracks[idx].duration || 200000;
+    cycleTimer = setTimeout(() => {
+      trackStartTime = Date.now();
+      const next = (idx + 1) % tracks.length;
+      updateTrackDisplay(next);
+      scheduleNext(next);
+    }, dur + 1500);
+  }
+
+  function startCycling() {
+    if (!hasTracks) return;
+    stopCycling();
+    trackStartTime = Date.now();
+    updateTrackDisplay(currentTrackIdx);
+    scheduleNext(currentTrackIdx);
+    if (activeTab === 'lyrics') startLyricsScroll();
+  }
+
+  function stopCycling() {
+    if (cycleTimer) { clearTimeout(cycleTimer); cycleTimer = null; }
+    stopLyricsScroll();
+  }
+
+  // ── ⏮⏭: visual only ──
+  function switchTrack(offset) {
+    if (!hasTracks) return;
+    const idx = ((currentTrackIdx + offset) % tracks.length + tracks.length) % tracks.length;
+    trackStartTime = Date.now();
+    updateTrackDisplay(idx);
+    stopCycling();
+    scheduleNext(idx);
+    if (activeTab === 'lyrics') startLyricsScroll();
+  }
+
+  btnPrev?.addEventListener('click', () => switchTrack(-1));
+  btnNext?.addEventListener('click', () => switchTrack(1));
+
+  // ═══════════════════
+  // Lyrics engine
+  // ═══════════════════
+
+  function renderLyrics(lyrics) {
+    if (!lyricsScroll) return;
+    lyricsScroll.innerHTML = '';
+    const top = document.createElement('div');
+    top.style.height = '120px';
+    lyricsScroll.appendChild(top);
+
+    if (!lyrics?.length) {
+      const p = document.createElement('p');
+      p.className = 'np-lyric-line';
+      p.textContent = '♪ 暂无歌词';
+      p.style.textAlign = 'center';
+      p.style.opacity = '0.3';
+      lyricsScroll.appendChild(p);
+    } else {
+      lyrics.forEach(line => {
+        const p = document.createElement('p');
+        p.className = 'np-lyric-line';
+        p.textContent = line.text;
+        p.dataset.time = line.time;
+        lyricsScroll.appendChild(p);
+      });
+    }
+
+    const bot = document.createElement('div');
+    bot.style.height = '120px';
+    lyricsScroll.appendChild(bot);
+    lyricsScroll.scrollTop = 0;
+  }
+
+  function updateLyricsHighlight() {
+    const elapsed = Date.now() - trackStartTime;
+    const lines = lyricsScroll?.querySelectorAll('.np-lyric-line');
+    if (!lines?.length) return;
+    let active = -1;
+    for (let i = lines.length - 1; i >= 0; i--) {
+      if (elapsed >= parseInt(lines[i].dataset.time)) { active = i; break; }
+    }
+    lines.forEach((l, i) => l.classList.toggle('active', i === active));
+    if (active >= 0) lines[active].scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function startLyricsScroll() { stopLyricsScroll(); lyricsTimer = setInterval(updateLyricsHighlight, 200); }
+  function stopLyricsScroll() { if (lyricsTimer) { clearInterval(lyricsTimer); lyricsTimer = null; } }
+
+  // ═══════════════════
+  // Tab switching
+  // ═══════════════════
+
+  function switchTab(tab) {
+    activeTab = tab;
+    tabPlayer?.classList.toggle('active', tab === 'player');
+    tabLyrics?.classList.toggle('active', tab === 'lyrics');
+    iframeWrap?.classList.toggle('hidden', tab !== 'player');
+    lyricsSection?.classList.toggle('hidden', tab !== 'lyrics');
+    tab === 'lyrics' ? startLyricsScroll() : stopLyricsScroll();
+  }
+
+  tabPlayer?.addEventListener('click', e => { e.stopPropagation(); switchTab('player'); });
+  tabLyrics?.addEventListener('click', e => { e.stopPropagation(); switchTab('lyrics'); });
+
+  // ═══════════════════
+  // Panel open/close
+  // ═══════════════════
+
+  function openPanel() {
+    panel.classList.remove('hidden');
+    panel.style.transform = 'scale(1)';
+    panel.style.opacity = '1';
+    circle.style.animation = 'cover-spin 4s linear infinite';
+    circle.style.filter = 'drop-shadow(0 0 15px rgba(0,255,136,0.2))';
+    rings.style.opacity = '1';
+    rings.querySelector('.np-glow-ring').style.animation = 'glow-ring-spin 10s linear infinite';
+    dot.style.animation = 'dot-pulse 1.5s ease-in-out infinite';
+    tooltip.style.display = 'none';
+    panelOpen = true;
+    if (hasTracks) { nowBar.classList.remove('hidden'); startCycling(); }
+  }
+
+  function closePanel() {
+    panel.style.transform = 'scale(0.95)';
+    panel.style.opacity = '0';
+    setTimeout(() => panel.classList.add('hidden'), 200);
+    circle.style.animation = 'none';
+    circle.style.filter = '';
+    rings.style.opacity = '0';
+    rings.querySelector('.np-glow-ring').style.animation = 'none';
+    dot.style.animation = 'none';
+    tooltip.style.display = '';
+    panelOpen = false;
+    stopCycling();
+    nowBar?.classList.add('hidden');
+    currentTrackIdx = 0;
+    if (coverImgUrl) { coverImg.src = coverImgUrl; coverImg.style.opacity = '1'; }
+    if (tipName && hasTracks) { tipName.textContent = tracks[0].name; tipArtist.textContent = tracks[0].artist; }
+  }
+
+  // ── Hover tooltip ──
+  controls?.addEventListener('mouseenter', () => { if (panelOpen) return; tooltip.style.opacity = '1'; tooltip.style.transform = 'translateY(0)'; });
+  controls?.addEventListener('mouseleave', () => { if (panelOpen) return; tooltip.style.opacity = '0'; tooltip.style.transform = 'translateY(8px)'; });
+
+  // ── Click / Double-click ──
+  let clickTimer = null;
+  circle?.addEventListener('click', e => {
+    e.preventDefault();
+    if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; window.open(neteaseUrl, '_blank'); }
+    else { clickTimer = setTimeout(() => { clickTimer = null; panelOpen ? closePanel() : openPanel(); }, 280); }
+  });
+
+  // ── Close on outside click ──
+  document.addEventListener('click', e => { if (panelOpen && root && !root.contains(e.target)) closePanel(); });
+
+  // ── Reduced motion ──
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.head.appendChild(Object.assign(document.createElement('style'), { textContent: '* { animation-duration: 0s !important; transition-duration: 0s !important; }' }));
+  }
+</script>

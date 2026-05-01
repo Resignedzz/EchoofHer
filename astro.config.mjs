@@ -11,4 +11,11 @@ export default defineConfig({
       theme: 'github-dark',
     },
   },
+  vite: {
+    server: {
+      headers: {
+        'Permissions-Policy': 'encrypted-media=*, accelerometer=*, autoplay=*, fullscreen=*',
+      },
+    },
+  },
 });

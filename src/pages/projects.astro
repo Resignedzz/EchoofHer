@@ -1,0 +1,58 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+const projects = [
+  {
+    name: 'resigned-blog',
+    description: '基于 Astro 的个人博客，终端风格设计，支持全文搜索和暗色模式。',
+    tech: ['Astro', 'Tailwind', 'TypeScript'],
+    link: 'https://github.com/Resignedzz',
+    icon: '📝',
+  },
+  {
+    name: '待添加',
+    description: '在这里展示你的项目，编辑 src/pages/projects.astro 即可。',
+    tech: [],
+    link: '#',
+    icon: '🚀',
+  },
+];
+---
+
+<BaseLayout title="项目 - resigned's blog" description="我的项目">
+  <Header />
+
+  <main class="flex-1 w-full max-w-3xl mx-auto px-4 py-12 sm:px-6">
+    <h1 class="font-mono text-3xl sm:text-4xl font-bold tracking-tight mb-8">
+      <span class="text-accent">&gt;</span> 项目
+    </h1>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {projects.map((project) => (
+        <a
+          href={project.link}
+          target="_blank"
+          rel="noopener"
+          class="group bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-6 hover:border-accent/50 transition-all hover:-translate-y-0.5"
+        >
+          <div class="flex items-start gap-3 mb-3">
+            <span class="text-2xl">{project.icon}</span>
+            <h2 class="font-mono font-bold text-lg group-hover:text-accent transition-colors">{project.name}</h2>
+          </div>
+          <p class="text-sm text-[var(--text-muted)] mb-4 leading-relaxed">{project.description}</p>
+          {project.tech.length > 0 && (
+            <div class="flex flex-wrap gap-2">
+              {project.tech.map((t) => (
+                <span class="text-xs font-mono px-2 py-0.5 rounded bg-[var(--border)] text-[var(--text-muted)]">{t}</span>
+              ))}
+            </div>
+          )}
+        </a>
+      ))}
+    </div>
+  </main>
+
+  <Footer />
+</BaseLayout>

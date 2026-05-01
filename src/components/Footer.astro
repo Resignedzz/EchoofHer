@@ -3,14 +3,17 @@ const year = new Date().getFullYear();
 ---
 
 <footer class="border-t border-[var(--border)] mt-auto">
-  <div class="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-[var(--text-muted)]">
-      <div class="font-mono text-xs">
-        <span class="text-accent">$</span> echo "Built with Astro" &amp;&amp; echo "${year}"
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 py-6">
+    <div class="font-mono text-xs text-[var(--text-muted)] flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-2 opacity-60">
+        <span class="text-[var(--accent)]">$</span>
+        <span>echo "Built with Astro" && echo "{year}"</span>
+        <span class="cursor-blink text-[var(--accent)]">█</span>
       </div>
-      <div class="flex items-center gap-4">
-        <a href="/rss.xml" class="hover:text-accent transition-colors">RSS</a>
-        <a href="https://github.com/Resignedzz" target="_blank" rel="noopener" class="hover:text-accent transition-colors">GitHub</a>
+      <div class="flex items-center gap-4 opacity-60">
+        <a href="/rss.xml" class="hover:text-[var(--accent)] hover:opacity-100 transition-colors">RSS</a>
+        <span>·</span>
+        <a href="https://github.com/Resignedzz" target="_blank" rel="noopener" class="hover:text-[var(--accent)] hover:opacity-100 transition-colors">GitHub</a>
       </div>
     </div>
   </div>

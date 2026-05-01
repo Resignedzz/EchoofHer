@@ -1,4 +1,6 @@
 ---
+import NowPlaying from '../components/NowPlaying.astro';
+
 export interface Props {
   title: string;
   description?: string;
@@ -8,9 +10,8 @@ export interface Props {
 const { title, description = 'A personal blog by resigned', ogImage } = Astro.props;
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 ---
-
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -26,6 +27,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
     <title>{title}</title>
     <meta name="description" content={description} />
+    <meta name="theme-color" content="#0a0a12" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
@@ -33,18 +35,54 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     {ogImage && <meta property="og:image" content={ogImage} />}
-
-    <!-- Theme init (prevent flash) -->
-    <script is:inline>
-      (function() {
-        const theme = localStorage.getItem('theme');
-        if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-          document.documentElement.classList.add('dark');
-        }
-      })();
-    </script>
   </head>
   <body class="min-h-screen flex flex-col">
     <slot />
+
+    <!-- ✨ Cursor glow effect -->
+    <div id="cursor-glow" class="pointer-events-none fixed w-[300px] h-[300px] rounded-full -translate-x-1/2 -translate-y-1/2 z-0 opacity-0 transition-opacity duration-500" style="background: radial-gradient(circle, rgba(0,255,136,0.06) 0%, rgba(168,85,247,0.03) 40%, transparent 70%);"></div>
+
+    <!-- 🎵 网易云音乐播放器 -->
+    <div class="fixed bottom-5 right-5 z-50">
+      <NowPlaying playlistId={2953785286} />
+    </div>
   </body>
+
+  <script is:inline>
+    // Cursor glow - subtle light following mouse
+    const glow = document.getElementById('cursor-glow');
+    let mouseX = 0, mouseY = 0, glowX = 0, glowY = 0;
+    let isVisible = false;
+
+    document.addEventListener('mousemove', (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+      if (!isVisible) {
+        glow.style.opacity = '1';
+        isVisible = true;
+      }
+    });
+
+    document.addEventListener('mouseleave', () => {
+      glow.style.opacity = '0';
+      isVisible = false;
+    });
+
+    // Smooth follow with requestAnimationFrame
+    function animateGlow() {
+      glowX += (mouseX - glowX) * 0.08;
+      glowY += (mouseY - glowY) * 0.08;
+      if (glow) {
+        glow.style.left = glowX + 'px';
+        glow.style.top = glowY + 'px';
+      }
+      requestAnimationFrame(animateGlow);
+    }
+    animateGlow();
+
+    // Respect reduced motion
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      glow?.remove();
+    }
+  </script>
 </html>

@@ -1,0 +1,70 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+const friends = [
+  {
+    name: '示例朋友',
+    description: '一个有趣的博客',
+    url: 'https://example.com',
+    avatar: '',
+  },
+];
+
+---
+
+<BaseLayout title="友链 - resigned's blog" description="友情链接">
+  <Header />
+
+  <main class="flex-1 w-full max-w-3xl mx-auto px-4 py-12 sm:px-6">
+    <h1 class="font-mono text-3xl sm:text-4xl font-bold tracking-tight mb-8">
+      <span class="text-accent">&gt;</span> 友链
+    </h1>
+
+    <!-- My info for exchange -->
+    <section class="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-6 mb-8">
+      <h2 class="font-mono text-sm font-bold text-[var(--text-muted)] uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="text-accent">#</span> 申请友链
+      </h2>
+      <div class="font-mono text-sm space-y-1 text-[var(--text-muted)]">
+        <p><span class="text-accent">名称:</span> resigned's blog</p>
+        <p><span class="text-accent">描述:</span> 软件智能工程师的个人博客</p>
+        <p><span class="text-accent">地址:</span> <span id="blog-url">your-blog-url.com</span></p>
+      </div>
+    </section>
+
+    <!-- Friends list -->
+    <section>
+      <h2 class="font-mono text-sm font-bold text-[var(--text-muted)] uppercase tracking-wider mb-6 flex items-center gap-2">
+        <span class="text-accent">#</span> 朋友们
+      </h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {friends.map((friend) => (
+          <a
+            href={friend.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="group bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-5 hover:border-accent/50 transition-all"
+          >
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-[var(--border)] flex items-center justify-center text-lg shrink-0">
+                {friend.avatar ? (
+                  <img src={friend.avatar} alt={friend.name} class="w-10 h-10 rounded-full object-cover" />
+                ) : (
+                  <span>🔗</span>
+                )}
+              </div>
+              <div>
+                <h3 class="font-medium group-hover:text-accent transition-colors">{friend.name}</h3>
+                <p class="text-xs text-[var(--text-muted)]">{friend.description}</p>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</BaseLayout>

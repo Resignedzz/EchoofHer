@@ -1,0 +1,105 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import { getCollection } from 'astro:content';
+
+const books = (await getCollection('books'))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const reading = books.filter(b => b.data.status === 'reading');
+const finished = books.filter(b => b.data.status === 'finished');
+const wishlist = books.filter(b => b.data.status === 'wishlist');
+
+function renderStars(rating: number) {
+  return '★'.repeat(rating) + '☆'.repeat(5 - rating);
+}
+---
+
+<BaseLayout title="阅读清单 - resigned's blog" description="技术书单与阅读记录">
+  <Header />
+
+  <main class="flex-1 w-full max-w-3xl mx-auto px-4 py-12 sm:px-6">
+    <h1 class="font-mono text-3xl sm:text-4xl font-bold tracking-tight mb-3">
+      <span class="text-[var(--accent)]">&gt;</span> 阅读清单
+    </h1>
+    <p class="text-[var(--text-muted)] mb-10 font-mono text-sm">
+      技术书单与阅读记录<span class="cursor-blink text-[var(--accent)]">█</span>
+    </p>
+
+    <!-- Reading -->
+    {reading.length > 0 && (
+      <section class="mb-10">
+        <h2 class="font-mono text-sm font-bold text-[var(--text-muted)] uppercase tracking-wider mb-4 flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-[var(--accent)]" style="box-shadow: 0 0 8px var(--accent);"></span>
+          正在读
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {reading.map((book) => (
+            <a href={`/books/${book.id}`} class="cyber-card group block border-l-2 border-l-[var(--accent)]">
+              <h3 class="font-mono font-bold group-hover:text-[var(--accent)] transition-colors">{book.data.title}</h3>
+              <p class="text-sm text-[var(--text-muted)] mt-1">{book.data.author}</p>
+              <div class="flex items-center gap-3 mt-2">
+                <span class="text-xs font-mono text-[var(--accent-secondary)]">{renderStars(book.data.rating)}</span>
+                {book.data.tags.map(tag => (
+                  <span class="text-xs font-mono text-[var(--text-muted)]">#{tag}</span>
+                ))}
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- Finished -->
+    {finished.length > 0 && (
+      <section class="mb-10">
+        <h2 class="font-mono text-sm font-bold text-[var(--text-muted)] uppercase tracking-wider mb-4 flex items-center gap-2">
+          <span class="text-[var(--accent)]">#</span> 已读完
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {finished.map((book) => (
+            <a href={`/books/${book.id}`} class="cyber-card group block">
+              <h3 class="font-mono font-bold group-hover:text-[var(--accent)] transition-colors">{book.data.title}</h3>
+              <p class="text-sm text-[var(--text-muted)] mt-1">{book.data.author}</p>
+              <div class="flex items-center gap-3 mt-2">
+                <span class="text-xs font-mono text-[var(--accent-secondary)]">{renderStars(book.data.rating)}</span>
+                {book.data.tags.map(tag => (
+                  <span class="text-xs font-mono text-[var(--text-muted)]">#{tag}</span>
+                ))}
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- Wishlist -->
+    {wishlist.length > 0 && (
+      <section class="mb-10">
+        <h2 class="font-mono text-sm font-bold text-[var(--text-muted)] uppercase tracking-wider mb-4 flex items-center gap-2">
+          <span class="text-[var(--text-muted)]">◆</span> 想读
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {wishlist.map((book) => (
+            <a href={`/books/${book.id}`} class="cyber-card group block opacity-70 hover:opacity-100 transition-opacity">
+              <h3 class="font-mono font-bold group-hover:text-[var(--accent)] transition-colors">{book.data.title}</h3>
+              <p class="text-sm text-[var(--text-muted)] mt-1">{book.data.author}</p>
+              <div class="flex items-center gap-3 mt-2">
+                {book.data.tags.map(tag => (
+                  <span class="text-xs font-mono text-[var(--text-muted)]">#{tag}</span>
+                ))}
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+
+    {books.length === 0 && (
+      <p class="text-[var(--text-muted)] text-center py-12 font-mono text-sm">// 还没有阅读记录 📚</p>
+    )}
+  </main>
+
+  <Footer />
+</BaseLayout>
