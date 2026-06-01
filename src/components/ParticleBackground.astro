@@ -1,0 +1,162 @@
+---
+// 粒子网格背景 — 鼠标交互排斥
+// Canvas 同时绘制背景色 + 粒子 + 连线，避免 z-index 层叠问题
+---
+
+<canvas id="particle-bg"></canvas>
+
+<style>
+  #particle-bg {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0 !important;
+    pointer-events: none;
+  }
+
+  /* Ensure nothing covers the canvas except real content */
+  body::before,
+  body::after {
+    z-index: 0 !important;
+  }
+
+  body > *:not(#particle-bg) {
+    position: relative;
+    z-index: 1;
+  }
+</style>
+
+<script>
+  (function () {
+    const canvas = document.getElementById('particle-bg');
+    if (!canvas) return;
+
+    const isLowEnd =
+      (navigator.deviceMemory && navigator.deviceMemory < 4) ||
+      (navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4) ||
+      (navigator.connection && navigator.connection.saveData) ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (isLowEnd) { canvas.remove(); return; }
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let W = 0, H = 0;
+    let particles: { x: number; y: number; vx: number; vy: number; r: number }[] = [];
+    let mouse = { x: -999, y: -999 };
+
+    const COUNT = 80;
+    const MAX_DIST = 130;
+    const MOUSE_RADIUS = 160;
+
+    function getBgColor(): string {
+      return document.documentElement.classList.contains('light') ? '#f5f5fa' : '#0a0a12';
+    }
+
+    function resize() {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
+
+    function init() {
+      resize();
+      particles = [];
+      for (let i = 0; i < COUNT; i++) {
+        particles.push({
+          x: Math.random() * W,
+          y: Math.random() * H,
+          vx: (Math.random() - 0.5) * 0.35,
+          vy: (Math.random() - 0.5) * 0.35,
+          r: Math.random() * 1.4 + 0.6,
+        });
+      }
+    }
+
+    document.addEventListener('mousemove', (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    });
+    document.addEventListener('mouseleave', () => {
+      mouse.x = -999;
+      mouse.y = -999;
+    });
+
+    function draw() {
+      // 1. Fill background color
+      ctx.fillStyle = getBgColor();
+      ctx.fillRect(0, 0, W, H);
+
+      const isLight = document.documentElement.classList.contains('light');
+      const dotAlpha = isLight ? 0.55 : 0.6;
+      const lineBaseAlpha = isLight ? 0.18 : 0.15;
+      const dotColor = isLight ? '0, 160, 90' : '0, 255, 136';
+      const lineColor = isLight ? '0, 160, 90' : '0, 255, 136';
+
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+
+        // Mouse repel
+        const dx = p.x - mouse.x;
+        const dy = p.y - mouse.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < MOUSE_RADIUS && dist > 0) {
+          const force = (MOUSE_RADIUS - dist) / MOUSE_RADIUS * 0.6;
+          p.vx += (dx / dist) * force;
+          p.vy += (dy / dist) * force;
+        }
+
+        p.vx *= 0.985;
+        p.vy *= 0.985;
+        p.vx += (Math.random() - 0.5) * 0.02;
+        p.vy += (Math.random() - 0.5) * 0.02;
+
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x < -10) p.x = W + 10;
+        if (p.x > W + 10) p.x = -10;
+        if (p.y < -10) p.y = H + 10;
+        if (p.y > H + 10) p.y = -10;
+
+        // Draw dot
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${dotColor}, ${dotAlpha})`;
+        ctx.fill();
+
+        // Lines to nearby particles
+        for (let j = i + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const d = Math.sqrt((p.x - p2.x) ** 2 + (p.y - p2.y) ** 2);
+          if (d < MAX_DIST) {
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = `rgba(${lineColor}, ${(1 - d / MAX_DIST) * lineBaseAlpha})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        }
+
+        // Line to mouse
+        if (dist < MOUSE_RADIUS * 1.2 && dist > 0) {
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(mouse.x, mouse.y);
+          ctx.strokeStyle = `rgba(${isLight ? '100, 50, 200' : '168, 85, 247'}, ${(1 - dist / (MOUSE_RADIUS * 1.2)) * 0.25})`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+      }
+
+      requestAnimationFrame(draw);
+    }
+
+    init();
+    draw();
+    window.addEventListener('resize', init);
+  })();
+</script>

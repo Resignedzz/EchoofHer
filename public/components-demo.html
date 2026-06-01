@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Components Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  /* ═══════ Dark Theme ═══════ */
+  :root {
+    --bg: #0a0a12; --bg-card: #111119; --bg-card-hover: #16161f;
+    --text: #e0e0e8; --text-muted: #7a7a8e;
+    --border: #1e1e2e; --border-hover: rgba(0,255,136,0.2);
+    --accent: #00ff88; --accent-secondary: #a855f7;
+    --accent-dim: rgba(0,255,136,0.08);
+    --accent-secondary-dim: rgba(168,85,247,0.08);
+    --glow: rgba(0,255,136,0.04);
+    --glow-strong: rgba(0,255,136,0.15);
+    --gradient: linear-gradient(135deg, #00ff88, #a855f7);
+  }
+
+  /* ═══════ Light Theme ═══════ */
+  html.light {
+    --bg: #f5f5fa; --bg-card: #ffffff; --bg-card-hover: #f8f8fc;
+    --text: #1a1a2e; --text-muted: #6b6b80;
+    --border: #e2e2ea; --border-hover: rgba(0,176,96,0.25);
+    --accent: #00b060; --accent-secondary: #7c3aed;
+    --accent-dim: rgba(0,176,96,0.06);
+    --accent-secondary-dim: rgba(124,58,237,0.05);
+    --glow: rgba(0,176,96,0.03);
+    --glow-strong: rgba(0,176,96,0.08);
+    --gradient: linear-gradient(135deg, #00b060, #7c3aed);
+  }
+
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    padding: 60px 20px; max-width: 900px; margin: 0 auto;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* ═══════ Theme Toggle ═══════ */
+  .theme-toggle {
+    position: fixed; top: 20px; right: 20px;
+    width: 44px; height: 44px; border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--bg-card); color: var(--text-muted);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 20px; z-index: 100;
+    transition: all 0.3s;
+  }
+  .theme-toggle:hover {
+    border-color: var(--border-hover);
+    color: var(--accent);
+    box-shadow: 0 0 12px var(--glow);
+  }
+
+  /* ═══════ Section Headers ═══════ */
+  h2 {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    color: var(--text-muted); text-transform: uppercase; letter-spacing: 4px;
+    margin-bottom: 32px; display: flex; align-items: center; gap: 10px;
+    transition: color 0.3s;
+  }
+  h2::before { content: ''; width: 24px; height: 2px; background: var(--accent); transition: background 0.3s; }
+  h3 { font-size: 20px; font-weight: 600; margin-bottom: 8px; transition: color 0.3s; }
+  p { color: var(--text-muted); font-size: 15px; line-height: 1.7; transition: color 0.3s; }
+  .demo-section { margin-bottom: 80px; }
+
+  /* ═══════════════════════════════════
+     1. Feature Cards
+     ═══════════════════════════════════ */
+  .feature-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;
+  }
+  @media (max-width: 640px) { .feature-grid { grid-template-columns: 1fr; } }
+
+  .feature-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 28px;
+    transition: all 0.3s ease; position: relative; overflow: hidden;
+  }
+  .feature-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--gradient); opacity: 0; transition: opacity 0.3s;
+  }
+  .feature-card:hover {
+    border-color: var(--border-hover);
+    box-shadow: 0 0 30px var(--glow);
+    transform: translateY(-2px);
+    background: var(--bg-card-hover);
+  }
+  .feature-card:hover::before { opacity: 1; }
+
+  .feature-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; margin-bottom: 16px;
+    background: var(--accent-dim);
+    border: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    transition: all 0.3s;
+  }
+  .feature-icon.purple {
+    background: var(--accent-secondary-dim);
+    border-color: color-mix(in srgb, var(--accent-secondary) 15%, transparent);
+    color: var(--accent-secondary);
+    transition: all 0.3s;
+  }
+  .feature-card:hover .feature-icon {
+    box-shadow: 0 0 16px var(--glow-strong);
+  }
+  .feature-card:hover .feature-icon.purple {
+    box-shadow: 0 0 16px rgba(168,85,247,0.15);
+  }
+  .feature-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+  .feature-card p { font-size: 13px; line-height: 1.6; }
+
+  /* ═══════════════════════════════════
+     2. Stats / Animated Counter
+     ═══════════════════════════════════ */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+  }
+  @media (max-width: 640px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .stat-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; text-align: center;
+    transition: all 0.3s;
+  }
+  .stat-card:hover {
+    border-color: var(--border-hover);
+    box-shadow: 0 0 20px var(--glow);
+    transform: translateY(-2px);
+  }
+  .stat-number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 36px; font-weight: 700; line-height: 1; margin-bottom: 8px;
+    background: var(--gradient);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .stat-label {
+    font-size: 12px; color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.5px; transition: color 0.3s;
+  }
+
+  /* ═══════════════════════════════════
+     3. FAQ Accordion
+     ═══════════════════════════════════ */
+  .faq-list { border-top: 1px solid var(--border); transition: border-color 0.3s; }
+  .faq-item { border-bottom: 1px solid var(--border); transition: border-color 0.3s; }
+  .faq-question {
+    width: 100%; background: none; border: none; color: var(--text);
+    font-size: 15px; font-weight: 500;
+    padding: 20px 0;
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; text-align: left; font-family: inherit;
+    transition: color 0.2s;
+  }
+  .faq-question:hover { color: var(--accent); }
+  .faq-icon {
+    width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.3s ease, color 0.3s;
+    color: var(--text-muted); flex-shrink: 0; margin-left: 16px;
+    font-size: 18px; line-height: 1;
+  }
+  .faq-item.open .faq-icon { transform: rotate(45deg); color: var(--accent); }
+  .faq-answer {
+    max-height: 0; overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.16,1,0.3,1), padding 0.3s ease;
+    padding: 0 0;
+  }
+  .faq-item.open .faq-answer { max-height: 200px; padding: 0 0 20px; }
+  .faq-answer p { font-size: 14px; line-height: 1.7; color: var(--text-muted); transition: color 0.3s; }
+</style>
+</head>
+<body>
+
+<!-- Theme Toggle -->
+<button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+  <span id="themeIcon">🌙</span>
+</button>
+
+<!-- ==================== 1. Feature Cards ==================== -->
+<section class="demo-section">
+  <h2>01 — Feature Cards</h2>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon">&gt;_</div>
+      <h3>全栈开发</h3>
+      <p>从前端界面到后端架构，熟悉 React、Vue、Node.js、Python 等主流技术栈，能独立交付完整项目。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon purple">◈</div>
+      <h3>AI 应用</h3>
+      <p>探索大语言模型的应用落地，包括 Agent 系统、RAG 管道、Prompt Engineering 和 AI 辅助开发工作流。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🌐</div>
+      <h3>开源贡献</h3>
+      <p>活跃于 GitHub 开源社区，维护个人项目，关注开发者工具和基础设施领域的创新。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon purple">✦</div>
+      <h3>产品思维</h3>
+      <p>不只写代码，也关注用户体验和产品设计。从需求分析到上线运营，用技术创造价值。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 2. Stats Counter ==================== -->
+<section class="demo-section">
+  <h2>02 — Animated Stats</h2>
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-number" data-target="3" data-suffix="">0</div>
+      <div class="stat-label">博客文章</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" data-target="1" data-suffix="">0</div>
+      <div class="stat-label">代码片段</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" data-target="42" data-suffix="">0</div>
+      <div class="stat-label">运行天数</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" data-target="100" data-suffix="%">0</div>
+      <div class="stat-label">热情指数</div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 3. FAQ Accordion ==================== -->
+<section class="demo-section">
+  <h2>03 — FAQ Accordion</h2>
+  <div class="faq-list">
+    <div class="faq-item">
+      <button class="faq-question">
+        这个博客是用什么技术栈搭建的？
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-answer">
+        <p>基于 Astro 5 静态站点生成器，搭配 Tailwind CSS 进行样式开发。部署在 Cloudflare Pages 上，评论系统使用 Giscus（GitHub Discussions），访问统计使用不蒜子。</p>
+      </div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-question">
+        博客的主题是自己设计的吗？
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-answer">
+        <p>是的，整体设计走赛博朋克 / 终端风格，配色以深色背景 + 绿色荧光为主色调，紫色作为辅助强调色。所有 UI 组件都是手写的，没有使用现成的博客主题。</p>
+      </div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-question">
+        可以转载或引用博客内容吗？
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-answer">
+        <p>非商业用途可以转载，但请注明出处并附上原文链接。技术文章的代码示例采用 MIT 协议，可以自由使用。如果有疑问，欢迎通过邮件或 GitHub 联系。</p>
+      </div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-question">
+        如何订阅博客更新？
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-answer">
+        <p>点击导航栏的 RSS 图标即可订阅 RSS Feed。也可以关注 GitHub 仓库获取最新动态，或者直接收藏本站，定期来看看。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // ── Theme Toggle ──
+  (function() {
+    var html = document.documentElement;
+    var btn = document.getElementById('themeToggle');
+    var icon = document.getElementById('themeIcon');
+
+    var saved = localStorage.getItem('demo-theme');
+    if (saved === 'light') {
+      html.classList.remove('dark');
+      html.classList.add('light');
+      icon.textContent = '☀️';
+    } else if (saved === 'dark') {
+      icon.textContent = '🌙';
+    } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+      html.classList.remove('dark');
+      html.classList.add('light');
+      icon.textContent = '☀️';
+    }
+
+    btn.addEventListener('click', function() {
+      var isDark = html.classList.contains('dark');
+      if (isDark) {
+        html.classList.remove('dark');
+        html.classList.add('light');
+        icon.textContent = '☀️';
+        localStorage.setItem('demo-theme', 'light');
+      } else {
+        html.classList.remove('light');
+        html.classList.add('dark');
+        icon.textContent = '🌙';
+        localStorage.setItem('demo-theme', 'dark');
+      }
+    });
+  })();
+
+  // ── Animated Counter ──
+  (function() {
+    var counters = document.querySelectorAll('.stat-number');
+    var animated = new Set();
+
+    function animateCounter(el) {
+      var target = parseInt(el.getAttribute('data-target'));
+      var suffix = el.getAttribute('data-suffix') || '';
+      var duration = 1500;
+      var start = performance.now();
+      function tick(now) {
+        var progress = Math.min((now - start) / duration, 1);
+        var ease = 1 - Math.pow(1 - progress, 3);
+        el.textContent = Math.round(ease * target) + suffix;
+        if (progress < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting && !animated.has(entry.target)) {
+          animated.add(entry.target);
+          animateCounter(entry.target);
+        }
+      });
+    }, { threshold: 0.5 });
+
+    counters.forEach(function(c) { observer.observe(c); });
+  })();
+
+  // ── FAQ Accordion ──
+  (function() {
+    document.querySelectorAll('.faq-question').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var item = this.parentElement;
+        var wasOpen = item.classList.contains('open');
+        document.querySelectorAll('.faq-item.open').forEach(function(el) {
+          el.classList.remove('open');
+        });
+        if (!wasOpen) item.classList.add('open');
+      });
+    });
+  })();
+</script>
+</body>
+</html>

@@ -7,9 +7,26 @@ import { getCollection } from 'astro:content';
 const books = (await getCollection('books'))
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
 
-const reading = books.filter(b => b.data.status === 'reading');
-const finished = books.filter(b => b.data.status === 'finished');
-const wishlist = books.filter(b => b.data.status === 'wishlist');
+// Fetch book covers from Open Library API by ISBN
+async function fetchCover(isbn?: string): Promise<string> {
+  if (!isbn) return '';
+  try {
+    const r = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    const d = await r.json();
+    return d?.[`ISBN:${isbn}`]?.cover?.medium || d?.[`ISBN:${isbn}`]?.cover?.small || '';
+  } catch { return ''; }
+}
+
+const booksWithCovers = await Promise.all(books.map(async (book) => ({
+  book,
+  cover: await fetchCover(book.data.isbn),
+})));
+
+const reading = booksWithCovers.filter(b => b.book.data.status === 'reading');
+const finished = booksWithCovers.filter(b => b.book.data.status === 'finished');
+const wishlist = booksWithCovers.filter(b => b.book.data.status === 'wishlist');
 
 function renderStars(rating: number) {
   return '★'.repeat(rating) + '☆'.repeat(5 - rating);
@@ -35,15 +52,18 @@ function renderStars(rating: number) {
           正在读
         </h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {reading.map((book) => (
-            <a href={`/books/${book.id}`} class="cyber-card group block border-l-2 border-l-[var(--accent)]">
-              <h3 class="font-mono font-bold group-hover:text-[var(--accent)] transition-colors">{book.data.title}</h3>
-              <p class="text-sm text-[var(--text-muted)] mt-1">{book.data.author}</p>
-              <div class="flex items-center gap-3 mt-2">
-                <span class="text-xs font-mono text-[var(--accent-secondary)]">{renderStars(book.data.rating)}</span>
-                {book.data.tags.map(tag => (
-                  <span class="text-xs font-mono text-[var(--text-muted)]">#{tag}</span>
-                ))}
+          {reading.map(({ book, cover }) => (
+            <a href={`/books/${book.id}`} class="cyber-card group flex gap-4 border-l-2 border-l-[var(--accent)]">
+              {cover && <img src={cover} alt={book.data.title} class="w-16 h-22 rounded object-cover flex-shrink-0" loading="lazy" />}
+              <div class="min-w-0">
+                <h3 class="font-mono font-bold group-hover:text-[var(--accent)] transition-colors">{book.data.title}</h3>
+                <p class="text-sm text-[var(--text-muted)] mt-1">{book.data.author}</p>
+                <div class="flex items-center gap-3 mt-2">
+                  <span class="text-xs font-mono text-[var(--accent-secondary)]">{renderStars(book.data.rating)}</span>
+                  {book.data.tags.map(tag => (
+                    <span class="text-xs font-mono text-[var(--text-muted)]">#{tag}</span>
+                  ))}
+                </div>
               </div>
             </a>
           ))}
@@ -58,15 +78,18 @@ function renderStars(rating: number) {
           <span class="text-[var(--accent)]">#</span> 已读完
         </h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {finished.map((book) => (
-            <a href={`/books/${book.id}`} class="cyber-card group block">
-              <h3 class="font-mono font-bold group-hover:text-[var(--accent)] transition-colors">{book.data.title}</h3>
-              <p class="text-sm text-[var(--text-muted)] mt-1">{book.data.author}</p>
-              <div class="flex items-center gap-3 mt-2">
-                <span class="text-xs font-mono text-[var(--accent-secondary)]">{renderStars(book.data.rating)}</span>
-                {book.data.tags.map(tag => (
-                  <span class="text-xs font-mono text-[var(--text-muted)]">#{tag}</span>
-                ))}
+          {finished.map(({ book, cover }) => (
+            <a href={`/books/${book.id}`} class="cyber-card group flex gap-4">
+              {cover && <img src={cover} alt={book.data.title} class="w-16 h-22 rounded object-cover flex-shrink-0" loading="lazy" />}
+              <div class="min-w-0">
+                <h3 class="font-mono font-bold group-hover:text-[var(--accent)] transition-colors">{book.data.title}</h3>
+                <p class="text-sm text-[var(--text-muted)] mt-1">{book.data.author}</p>
+                <div class="flex items-center gap-3 mt-2">
+                  <span class="text-xs font-mono text-[var(--accent-secondary)]">{renderStars(book.data.rating)}</span>
+                  {book.data.tags.map(tag => (
+                    <span class="text-xs font-mono text-[var(--text-muted)]">#{tag}</span>
+                  ))}
+                </div>
               </div>
             </a>
           ))}

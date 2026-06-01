@@ -1,34 +1,53 @@
 ---
 import ThemeToggle from './ThemeToggle.astro';
+
+const currentPath = Astro.url.pathname;
+
+function isActive(href: string) {
+  if (href === '/') return currentPath === '/';
+  return currentPath.startsWith(href);
+}
+
+const navItems = [
+  { href: '/', label: '首页' },
+  { href: '/archive', label: '归档' },
+  { href: '/snippets', label: '片段' },
+  { href: '/books', label: '书单' },
+  { href: '/projects', label: '项目' },
+  { href: '/friends', label: '友链' },
+  { href: '/about', label: '关于' },
+  { href: '/tags', label: '标签' },
+];
 ---
 
+<head>
+  <!-- 不蒜子访客统计 -->
+  <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+</head>
 <header class="sticky top-0 z-50 backdrop-blur-md border-b border-[var(--border)]" style="background: rgba(10, 10, 18, 0.85);">
   <div class="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
     <!-- Logo / Nav -->
     <div class="flex items-center gap-6">
-      <a href="/" class="font-mono font-bold text-lg tracking-tight transition-all hover:drop-shadow-[0_0_8px_rgba(0,255,136,0.5)]">
+      <a href="/" class="font-mono font-bold text-lg tracking-tight transition-all hover:drop-shadow-[0_0_8px_rgba(140,140,220,0.4)]">
         <span class="text-gradient">~/blog</span><span class="text-[var(--accent)]">$</span>
       </a>
       <nav class="hidden sm:flex items-center gap-1 text-sm text-[var(--text-muted)]">
-        <a href="/" class="px-2.5 py-1 rounded-md hover:text-[var(--accent)] hover:bg-[var(--accent-dim)] transition-colors">首页</a>
-        <a href="/archive" class="px-2.5 py-1 rounded-md hover:text-[var(--accent)] hover:bg-[var(--accent-dim)] transition-colors">归档</a>
-        <a href="/snippets" class="px-2.5 py-1 rounded-md hover:text-[var(--accent)] hover:bg-[var(--accent-dim)] transition-colors">片段</a>
-        <a href="/books" class="px-2.5 py-1 rounded-md hover:text-[var(--accent)] hover:bg-[var(--accent-dim)] transition-colors">书单</a>
-        <a href="/projects" class="px-2.5 py-1 rounded-md hover:text-[var(--accent)] hover:bg-[var(--accent-dim)] transition-colors">项目</a>
-        <a href="/friends" class="px-2.5 py-1 rounded-md hover:text-[var(--accent)] hover:bg-[var(--accent-dim)] transition-colors">友链</a>
-        <a href="/about" class="px-2.5 py-1 rounded-md hover:text-[var(--accent)] hover:bg-[var(--accent-dim)] transition-colors">关于</a>
-        <a href="/tags" class="px-2.5 py-1 rounded-md hover:text-[var(--accent)] hover:bg-[var(--accent-dim)] transition-colors">标签</a>
+        {navItems.map(item => (
+          <a href={item.href} class:list={['px-2.5 py-1 rounded-md transition-colors', isActive(item.href) ? 'text-[var(--accent)] bg-[var(--accent-dim)]' : 'hover:text-[var(--accent)] hover:bg-[var(--accent-dim)]']}>
+            {item.label}
+          </a>
+        ))}
       </nav>
     </div>
 
     <!-- Right -->
     <div class="flex items-center gap-2">
-      <a href="/rss.xml" class="p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent-dim)] transition-all" title="RSS 订阅" aria-label="RSS">
+      <a href="/rss.xml" class="np-icon-btn p-1.5 rounded-md text-[var(--text-muted)] transition-all" title="RSS 订阅" aria-label="RSS">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/>
         </svg>
       </a>
-      <a href="https://github.com/Resignedzz" target="_blank" rel="noopener" class="p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent-dim)] transition-all" title="GitHub" aria-label="GitHub">
+      <a href="https://github.com/Resignedzz" target="_blank" rel="noopener" class="np-icon-btn p-1.5 rounded-md text-[var(--text-muted)] transition-all" title="GitHub" aria-label="GitHub">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
           <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
         </svg>
@@ -36,7 +55,7 @@ import ThemeToggle from './ThemeToggle.astro';
       <!-- Search -->
       <button
         id="search-toggle"
-        class="p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent-dim)] transition-all"
+        class="np-icon-btn p-1.5 rounded-md text-[var(--text-muted)] transition-all"
         title="搜索 (Ctrl+K)"
         aria-label="搜索"
       >
@@ -54,14 +73,11 @@ import ThemeToggle from './ThemeToggle.astro';
           </svg>
         </button>
         <div id="mobile-menu" class="hidden absolute right-0 top-full mt-2 w-44 rounded-xl border border-[var(--border)] shadow-2xl p-2 z-50" style="background: var(--bg-card);">
-          <a href="/" class="block px-3 py-2 text-sm rounded-lg hover:bg-[var(--accent-dim)] hover:text-[var(--accent)] transition-colors">首页</a>
-          <a href="/archive" class="block px-3 py-2 text-sm rounded-lg hover:bg-[var(--accent-dim)] hover:text-[var(--accent)] transition-colors">归档</a>
-          <a href="/snippets" class="block px-3 py-2 text-sm rounded-lg hover:bg-[var(--accent-dim)] hover:text-[var(--accent)] transition-colors">片段</a>
-          <a href="/books" class="block px-3 py-2 text-sm rounded-lg hover:bg-[var(--accent-dim)] hover:text-[var(--accent)] transition-colors">书单</a>
-          <a href="/projects" class="block px-3 py-2 text-sm rounded-lg hover:bg-[var(--accent-dim)] hover:text-[var(--accent)] transition-colors">项目</a>
-          <a href="/friends" class="block px-3 py-2 text-sm rounded-lg hover:bg-[var(--accent-dim)] hover:text-[var(--accent)] transition-colors">友链</a>
-          <a href="/about" class="block px-3 py-2 text-sm rounded-lg hover:bg-[var(--accent-dim)] hover:text-[var(--accent)] transition-colors">关于</a>
-          <a href="/tags" class="block px-3 py-2 text-sm rounded-lg hover:bg-[var(--accent-dim)] hover:text-[var(--accent)] transition-colors">标签</a>
+          {navItems.map(item => (
+            <a href={item.href} class:list={['block px-3 py-2 text-sm rounded-lg transition-colors', isActive(item.href) ? 'bg-[var(--accent-dim)] text-[var(--accent)]' : 'hover:bg-[var(--accent-dim)] hover:text-[var(--accent)]']}>
+              {item.label}
+            </a>
+          ))}
           <div class="border-t border-[var(--border)] my-1"></div>
           <a href="/rss.xml" class="block px-3 py-2 text-sm rounded-lg hover:bg-[var(--accent-dim)] hover:text-[var(--accent)] transition-colors">RSS</a>
           <a href="https://github.com/Resignedzz" target="_blank" rel="noopener" class="block px-3 py-2 text-sm rounded-lg hover:bg-[var(--accent-dim)] hover:text-[var(--accent)] transition-colors">GitHub ↗</a>
@@ -74,7 +90,7 @@ import ThemeToggle from './ThemeToggle.astro';
   <div id="search-modal" class="hidden fixed inset-0 z-[100]">
     <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" id="search-backdrop"></div>
     <div class="relative max-w-lg mx-auto mt-20 px-4">
-      <div class="rounded-xl shadow-2xl overflow-hidden" style="background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 0 40px rgba(0, 255, 136, 0.1);">
+      <div class="rounded-xl shadow-2xl overflow-hidden" style="background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 0 40px rgba(120,100,220,0.08);">
         <div class="flex items-center gap-3 px-4 border-b border-[var(--border)]">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-[var(--accent)] shrink-0">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>

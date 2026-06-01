@@ -8,6 +8,7 @@ const blog = defineCollection({
     description: z.string(),
     date: z.coerce.date(),
     updated: z.coerce.date().optional(),
+    image: z.object({ src: z.string(), alt: z.string().optional() }).optional(),
     tags: z.array(z.string()).default([]),
     draft: z.boolean().default(false),
   }),
@@ -21,6 +22,7 @@ const snippets = defineCollection({
     language: z.string().default(''),
     tags: z.array(z.string()).default([]),
     date: z.coerce.date(),
+    image: z.object({ src: z.string(), alt: z.string().optional() }).optional(),
   }),
 });
 
@@ -33,6 +35,8 @@ const books = defineCollection({
     tags: z.array(z.string()).default([]),
     status: z.enum(['reading', 'finished', 'wishlist']).default('finished'),
     date: z.coerce.date(),
+    isbn: z.string().optional(),
+    cover: z.string().url().optional(),
   }),
 });
 

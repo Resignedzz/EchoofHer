@@ -1,0 +1,240 @@
+---
+// GitHub Contribution Heatmap — 赛博终端风
+// 构建时从 ghchart.rshah.org 解析 SVG 数据，零客户端请求
+
+interface Props {
+  username?: string;
+  weeks?: number;
+}
+
+const { username = 'Resignedzz', weeks = 18 } = Astro.props;
+
+interface DayData {
+  date: string;
+  score: number;
+  level: 0 | 1 | 2 | 3 | 4;
+}
+
+// 色阶映射
+function getLevel(score: number): 0 | 1 | 2 | 3 | 4 {
+  if (score === 0) return 0;
+  if (score <= 2) return 1;
+  if (score <= 5) return 2;
+  if (score <= 9) return 3;
+  return 4;
+}
+
+// 从 SVG 解析贡献数据
+async function fetchContributions(user: string): Promise<{ days: DayData[]; totalScore: number } | null> {
+  try {
+    const res = await fetch(`https://ghchart.rshah.org/${user}`, {
+      signal: AbortSignal.timeout(10000),
+      headers: { 'User-Agent': 'AstroBot' },
+    });
+    if (!res.ok) return null;
+
+    const svg = await res.text();
+
+    // 解析所有 rect: data-date="YYYY-MM-DD" data-score="N"（两种属性顺序）
+    const regex = /data-date="(\d{4}-\d{2}-\d{2})"[^>]*?data-score="(\d+)"|data-score="(\d+)"[^>]*?data-date="(\d{4}-\d{2}-\d{2})"/g;
+    const days: DayData[] = [];
+    let totalScore = 0;
+    let match;
+
+    while ((match = regex.exec(svg)) !== null) {
+      const date = match[1] || match[4];
+      const score = parseInt(match[2] || match[3], 10);
+      days.push({ date, score, level: getLevel(score) });
+      totalScore += score;
+    }
+
+    return days.length > 0 ? { days, totalScore } : null;
+  } catch {
+    return null;
+  }
+}
+
+const result = await fetchContributions(username);
+
+// 按周分组（每 7 天一周）
+function groupByWeek(days: DayData[], numWeeks: number) {
+  const slice = days.slice(-numWeeks * 7);
+  const weeks: DayData[][] = [];
+  for (let i = 0; i < slice.length; i += 7) {
+    weeks.push(slice.slice(i, i + 7));
+  }
+  return weeks;
+}
+
+const weekData = result ? groupByWeek(result.days, weeks) : [];
+const totalScore = result?.totalScore ?? 0;
+const hasData = weekData.length > 0;
+
+// 连续天数
+function calcStreak(days: DayData[]): { current: number; max: number } {
+  let max = 0, cur = 0, curEnd = 0;
+  for (const d of days) {
+    if (d.score > 0) { cur++; if (cur > max) max = cur; }
+    else { cur = 0; }
+  }
+  // 从末尾往回数当前连续
+  cur = 0;
+  for (let i = days.length - 1; i >= 0; i--) {
+    if (days[i].score > 0) cur++;
+    else break;
+  }
+  return { current: cur, max };
+}
+
+const streak = result ? calcStreak(result.days) : { current: 0, max: 0 };
+---
+
+<div class="gh-heatmap">
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-2">
+    <span class="text-[10px] font-mono text-[var(--text-muted)] uppercase tracking-widest flex items-center gap-1.5">
+      <span class="text-[var(--accent)]">></span> contributions
+    </span>
+    <a
+      href={`https://github.com/${username}`}
+      target="_blank"
+      rel="noopener"
+      class="text-[10px] font-mono text-[var(--text-muted)] opacity-40 hover:opacity-100 hover:text-[var(--accent)] transition-all"
+    >@{username}</a>
+  </div>
+
+  {hasData ? (
+    <>
+      <!-- Grid -->
+      <div class="gh-grid" role="img" aria-label={`GitHub contributions: ${totalScore} total`}>
+        {weekData.map((week, wi) => (
+          <div class="gh-week">
+            {week.map((day) => (
+              <div
+                class={`gh-day gh-lv-${day.level}`}
+                title={`${day.date}: ${day.score} contribution${day.score !== 1 ? 's' : ''}`}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+
+      <!-- Stats -->
+      <div class="flex items-center justify-between mt-2.5">
+        <div class="flex items-center gap-2 text-[9px] font-mono text-[var(--text-muted)]">
+          <span class="text-[var(--accent)] tabular-nums">{totalScore}</span>
+          <span class="opacity-40">total</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <span class="text-[9px] font-mono text-[var(--text-muted)] opacity-40">less</span>
+          {[0, 1, 2, 3, 4].map((lv) => (
+            <div class={`gh-day gh-lv-${lv} gh-legend`} />
+          ))}
+          <span class="text-[9px] font-mono text-[var(--text-muted)] opacity-40">more</span>
+        </div>
+      </div>
+
+      <!-- Streak -->
+      {(streak.current > 0 || streak.max > 0) && (
+        <div class="flex items-center gap-3 mt-2 pt-2" style="border-top: 1px solid var(--border);">
+          {streak.current > 0 && (
+            <span class="text-[9px] font-mono text-[var(--text-muted)]">
+              <span class="text-[var(--accent)] tabular-nums">🔥 {streak.current}</span>
+              <span class="opacity-40 ml-0.5">streak</span>
+            </span>
+          )}
+          {streak.max > 0 && streak.max !== streak.current && (
+            <span class="text-[9px] font-mono text-[var(--text-muted)]">
+              <span class="text-[var(--accent-secondary)] tabular-nums">⚡ {streak.max}</span>
+              <span class="opacity-40 ml-0.5">max</span>
+            </span>
+          )}
+        </div>
+      )}
+    </>
+  ) : (
+    <div class="py-4 text-center">
+      <p class="font-mono text-[10px] text-[var(--text-muted)] opacity-30">// no data</p>
+    </div>
+  )}
+</div>
+
+<style>
+  .gh-heatmap {
+    --gh-size: 9px;
+    --gh-gap: 2px;
+    --gh-0: var(--border);
+    --gh-1: rgba(0, 255, 136, 0.15);
+    --gh-2: rgba(0, 255, 136, 0.35);
+    --gh-3: rgba(0, 255, 136, 0.6);
+    --gh-4: rgba(0, 255, 136, 0.9);
+  }
+
+  .gh-grid {
+    display: flex;
+    gap: var(--gh-gap);
+    overflow: hidden;
+  }
+
+  .gh-week {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gh-gap);
+    flex-shrink: 0;
+  }
+
+  .gh-day {
+    width: var(--gh-size);
+    height: var(--gh-size);
+    border-radius: 2px;
+    transition: transform 0.1s ease, box-shadow 0.15s ease;
+    cursor: default;
+  }
+
+  .gh-day:hover {
+    transform: scale(1.6);
+    z-index: 10;
+    position: relative;
+  }
+
+  .gh-legend {
+    width: 8px;
+    height: 8px;
+  }
+
+  .gh-lv-0 { background: var(--gh-0); }
+  .gh-lv-1 { background: var(--gh-1); }
+  .gh-lv-1:hover { box-shadow: 0 0 6px rgba(0, 255, 136, 0.3); }
+  .gh-lv-2 { background: var(--gh-2); }
+  .gh-lv-2:hover { box-shadow: 0 0 8px rgba(0, 255, 136, 0.4); }
+  .gh-lv-3 { background: var(--gh-3); }
+  .gh-lv-3:hover { box-shadow: 0 0 10px rgba(0, 255, 136, 0.5); }
+  .gh-lv-4 { background: var(--gh-4); box-shadow: 0 0 3px rgba(0, 255, 136, 0.2); }
+  .gh-lv-4:hover { box-shadow: 0 0 12px rgba(0, 255, 136, 0.6); }
+
+  /* Tooltip */
+  .gh-day:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-mono, monospace);
+    font-size: 9px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 100;
+    pointer-events: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+
+  @media (max-width: 1023px) {
+    .gh-heatmap {
+      --gh-size: 10px;
+    }
+  }
+</style>

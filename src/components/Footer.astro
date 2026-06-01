@@ -7,7 +7,7 @@ const year = new Date().getFullYear();
     <div class="font-mono text-xs text-[var(--text-muted)] flex flex-col sm:flex-row items-center justify-between gap-3">
       <div class="flex items-center gap-2 opacity-60">
         <span class="text-[var(--accent)]">$</span>
-        <span>echo "Built with Astro" && echo "{year}"</span>
+        <span>echo "Built with Astro" && echo "<span id="footer-year">{year}</span>"</span>
         <span class="cursor-blink text-[var(--accent)]">█</span>
       </div>
       <div class="flex items-center gap-4 opacity-60">

@@ -12,6 +12,15 @@ const friends = [
   },
 ];
 
+async function checkLink(url: string): Promise<'alive' | 'dead' | 'unknown'> {
+  try {
+    const r = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(6000), redirect: 'follow', headers: { 'User-Agent': 'Mozilla/5.0' } });
+    return r.ok ? 'alive' : 'dead';
+  } catch { return 'unknown'; }
+}
+
+const friendsWithStatus = await Promise.all(friends.map(async (f) => ({ ...f, status: await checkLink(f.url) })));
+
 ---
 
 <BaseLayout title="友链 - resigned's blog" description="友情链接">
@@ -40,28 +49,36 @@ const friends = [
         <span class="text-accent">#</span> 朋友们
       </h2>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {friends.map((friend) => (
-          <a
-            href={friend.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="group bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-5 hover:border-accent/50 transition-all"
-          >
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-full bg-[var(--border)] flex items-center justify-center text-lg shrink-0">
-                {friend.avatar ? (
-                  <img src={friend.avatar} alt={friend.name} class="w-10 h-10 rounded-full object-cover" />
-                ) : (
-                  <span>🔗</span>
-                )}
+        {friendsWithStatus.map((friend) => {
+          const isDead = friend.status === 'dead';
+          const isUnknown = friend.status === 'unknown';
+          return (
+            <a
+              href={friend.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              class:list={['group bg-[var(--bg-card)] border rounded-xl p-5 transition-all',
+                isDead ? 'border-red-500/50 opacity-70' : 'border-[var(--border)] hover:border-accent/50',
+                isUnknown && !isDead ? 'border-yellow-500/30 opacity-80' : '']}
+            >
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-[var(--border)] flex items-center justify-center text-lg shrink-0">
+                  {friend.avatar ? (
+                    <img src={friend.avatar} alt={friend.name} class="w-10 h-10 rounded-full object-cover" />
+                  ) : (
+                    <span>{isDead ? '💀' : '🔗'}</span>
+                  )}
+                </div>
+                <div class="min-w-0 flex-1">
+                  <h3 class:list={['font-medium transition-colors', isDead ? 'text-red-400' : 'group-hover:text-accent']}>{friend.name}</h3>
+                  <p class="text-xs text-[var(--text-muted)]">{friend.description}</p>
+                  {isDead && <span class="text-[10px] font-mono text-red-400 mt-1 inline-block">⚠ link down</span>}
+                  {isUnknown && <span class="text-[10px] font-mono text-yellow-500 mt-1 inline-block">? unreachable</span>}
+                </div>
               </div>
-              <div>
-                <h3 class="font-medium group-hover:text-accent transition-colors">{friend.name}</h3>
-                <p class="text-xs text-[var(--text-muted)]">{friend.description}</p>
-              </div>
-            </div>
-          </a>
-        ))}
+            </a>
+          );
+        })}
       </div>
     </section>
   </main>

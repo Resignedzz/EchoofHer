@@ -1,5 +1,6 @@
 ---
 import NowPlaying from '../components/NowPlaying.astro';
+import '../styles/global.css';
 
 export interface Props {
   title: string;
@@ -27,7 +28,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
     <title>{title}</title>
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#0a0a12" />
+    <meta name="theme-color" content="#050507" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
@@ -39,13 +40,58 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
   <body class="min-h-screen flex flex-col">
     <slot />
 
-    <!-- ✨ Cursor glow effect -->
-    <div id="cursor-glow" class="pointer-events-none fixed w-[300px] h-[300px] rounded-full -translate-x-1/2 -translate-y-1/2 z-0 opacity-0 transition-opacity duration-500" style="background: radial-gradient(circle, rgba(0,255,136,0.06) 0%, rgba(168,85,247,0.03) 40%, transparent 70%);"></div>
+    <!-- Cursor glow effect -->
+    <div id="cursor-glow" class="pointer-events-none fixed w-[300px] h-[300px] rounded-full -translate-x-1/2 -translate-y-1/2 z-0 opacity-0 transition-opacity duration-500" style="background: radial-gradient(circle, rgba(120,100,220,0.06) 0%, rgba(100,80,200,0.03) 40%, transparent 70%);"></div>
 
-    <!-- 🎵 网易云音乐播放器 -->
+    <!-- Music player -->
     <div class="fixed bottom-5 right-5 z-50">
       <NowPlaying playlistId={2953785286} />
     </div>
+
+    <!-- Theme variables — placed at end of body to override Tailwind bundled CSS -->
+    <style is:inline>
+    :root{
+      --bg:#050507;--bg-card:rgba(15,15,20,.6);--bg-card-hover:rgba(22,22,30,.7);--text:#f0f0f5;--text-muted:#7a7a8e;
+      --border:rgba(255,255,255,.06);--border-glow:rgba(255,255,255,.1);--accent:#e0e0f0;--accent-secondary:#8b8ba8;--accent-hover:#fff;
+      --accent-dim:rgba(255,255,255,.04);--accent-secondary-dim:rgba(255,255,255,.03);--code-bg:rgba(15,15,20,.8);
+      --gradient-accent:linear-gradient(135deg,#c8c8e8,#6b6b9e);--gradient-accent-hover:linear-gradient(135deg,#e0e0ff,#8888cc);
+      --neon-glow:0 0 20px rgba(100,100,200,.08),0 0 40px rgba(80,80,180,.03);
+      --neon-glow-purple:0 0 20px rgba(120,80,200,.06),0 0 40px rgba(100,60,180,.02);
+      --bg-glow-1:rgba(255,255,255,.03);--bg-glow-2:rgba(255,255,255,.02);--bg-glow-3:rgba(255,255,255,.015);
+      --glass-bg:rgba(15,15,25,.5);--glass-border:rgba(255,255,255,.06);--glass-blur:16px;
+    }
+    html.light{
+      --bg:#f5f5fa;--bg-card:rgba(255,255,255,.65);--bg-card-hover:rgba(248,248,255,.75);--text:#0f0f1a;--text-muted:#6a6a7e;
+      --border:rgba(0,0,0,.06);--border-glow:rgba(0,0,0,.1);--accent:#1a1a2e;--accent-secondary:#555570;--accent-hover:#000;
+      --accent-dim:rgba(100,100,220,.06);--accent-secondary-dim:rgba(140,100,220,.05);--code-bg:rgba(245,245,255,.9);
+      --gradient-accent:linear-gradient(135deg,#4a4a8e,#8888cc);--gradient-accent-hover:linear-gradient(135deg,#5a5a9e,#9999dd);
+      --neon-glow:0 0 15px rgba(100,100,220,.06),0 0 30px rgba(100,100,220,.02);
+      --neon-glow-purple:0 0 15px rgba(120,80,200,.05),0 0 30px rgba(120,80,200,.02);
+      --bg-glow-1:rgba(100,100,220,.02);--bg-glow-2:rgba(120,80,200,.015);--bg-glow-3:rgba(100,100,220,.01);
+      --glass-bg:rgba(255,255,255,.55);--glass-border:rgba(0,0,0,.05);--glass-blur:16px;
+    }
+    html.light body{background:#f5f5fa}
+    html.light body::before{
+      background-image:linear-gradient(rgba(100,100,220,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(100,100,220,.025) 1px,transparent 1px);
+    }
+    html.light body::after{
+      background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.005) 2px,rgba(0,0,0,.005) 4px);
+    }
+    html.light ::selection{background:rgba(100,100,220,.18);color:#0f0f1a}
+    html.light ::-webkit-scrollbar-track{background:#f5f5fa}
+    html.light .cyber-card{background:var(--glass-bg);backdrop-filter:blur(var(--glass-blur));-webkit-backdrop-filter:blur(var(--glass-blur));border-color:var(--glass-border)}
+    html.light .cyber-card:hover{border-color:rgba(100,100,220,.12);box-shadow:0 8px 24px rgba(100,100,220,.06)}
+    html.light .np-icon-btn:hover{text-shadow:0 0 8px rgba(100,100,220,.3);box-shadow:0 0 10px rgba(100,100,220,.06),inset 0 0 6px rgba(100,100,220,.02)}
+    html.light #np-circle>div:first-child,html.light #np-mini-btn>div:first-child{
+      background:conic-gradient(from 0deg,#c8c8e8,#a0a0cc,#c8c8e8,#a0a0cc,#c8c8e8)!important;
+      box-shadow:0 2px 15px rgba(100,100,220,.1),inset 0 0 20px rgba(100,100,220,.05)!important;
+    }
+    html.light #np-circle .np-glow-ring,html.light #np-mini-dot{
+      box-shadow:0 0 10px rgba(100,100,220,.1)!important;border-color:rgba(100,100,220,.12)!important;
+    }
+    html.light header{background:rgba(245,245,250,.85)!important}
+    html.light .cyber-card::before{background:linear-gradient(90deg,transparent,rgba(100,100,220,.2),transparent)}
+    </style>
   </body>
 
   <script is:inline>
