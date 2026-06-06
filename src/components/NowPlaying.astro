@@ -410,7 +410,7 @@
       hdTitle.textContent=(pl.name||'歌单')+' · '+(pl.creator?pl.creator.nickname||'':'');
       var raw=pl.tracks||[];
       tracks=[];
-      for(var i=0;i<raw.length&&i<50;i++){
+      for(var i=0;i<raw.length&&i<100;i++){
         var r=raw[i];
         tracks.push({id:r.id||0,name:r.name||'',
           artist:(r.ar||[]).map(function(a){return a.name}).join(', '),
@@ -420,24 +420,35 @@
       if(tracks.length){ setCover(tracks[0].cover); tipName.textContent=tracks[0].name; tipArtist.textContent=tracks[0].artist; }
     }catch(e){
       console.warn('[NP] fallback:',e);
-      // Fallback: 3 demo tracks (cover URLs verified via API)
+      // Fallback: classic tracks (cover URLs verified via API)
       tracks=[
-        {id:186016,name:'晴天',artist:'周杰伦',
-          cover:'https://p2.music.126.net/ZGffiDQZrGj5s_hnR1CNbg==/109951165566379710.jpg?param=100y100',
-          duration:269000,lyrics:[]},
-        {id:1901371647,name:'孤勇者',artist:'陈奕迅',
-          cover:'https://p2.music.126.net/HXfXIIBCk5w96MiY1Wdsqw==/109951171836610847.jpg?param=100y100',
-          duration:262000,lyrics:[]},
-        {id:1397345903,name:'悬溺',artist:'葛东琪',
-          cover:'https://p2.music.126.net/wSMfGvFzOAYRU_yVIfquAA==/2946691248081599.jpg?param=100y100',
-          duration:217000,lyrics:[]},
+        {id:186016,name:'晴天',artist:'周杰伦',cover:'https://p2.music.126.net/ZGffiDQZrGj5s_hnR1CNbg==/109951165566379710.jpg?param=100y100',duration:269000,lyrics:[]},
+        {id:1901371647,name:'孤勇者',artist:'陈奕迅',cover:'https://p2.music.126.net/HXfXIIBCk5w96MiY1Wdsqw==/109951171836610847.jpg?param=100y100',duration:262000,lyrics:[]},
+        {id:1397345903,name:'悬溺',artist:'葛东琪',cover:'https://p2.music.126.net/wSMfGvFzOAYRU_yVIfquAA==/2946691248081599.jpg?param=100y100',duration:217000,lyrics:[]},
+        {id:1868553,name:'七里香',artist:'周杰伦',cover:'https://p2.music.126.net/0mEJDkWMimxcBq1Gh0xPCg==/109951163690257207.jpg?param=100y100',duration:299000,lyrics:[]},
+        {id:167876,name:'夜曲',artist:'周杰伦',cover:'https://p2.music.126.net/8D8zWQ0NjfOrjH1kPNJ6RA==/109951163139557231.jpg?param=100y100',duration:226000,lyrics:[]},
+        {id:185809,name:'稻香',artist:'周杰伦',cover:'https://p2.music.126.net/dmM5rqv5b7xC8KGUjoKnQg==/109951163042544515.jpg?param=100y100',duration:223000,lyrics:[]},
+        {id:441491828,name:'起风了',artist:'买辣椒也用券',cover:'https://p2.music.126.net/cgPKNRKJhGQqxLDy5R5Biw==/109951163945859964.jpg?param=100y100',duration:325000,lyrics:[]},
+        {id:1325839776,name:'错位时空',artist:'艾辰',cover:'https://p2.music.126.net/Y7Z6U2nBDqF8PBRcGKNSgg==/109951165321810134.jpg?param=100y100',duration:213000,lyrics:[]},
+        {id:1407551413,name:'花海',artist:'周杰伦',cover:'https://p2.music.126.net/e-MWdMTT1WBKnMQD7Gxj9A==/109951164352957467.jpg?param=100y100',duration:260000,lyrics:[]},
+        {id:436514312,name:'告白气球',artist:'周杰伦',cover:'https://p2.music.126.net/6N7tsY5qxOrKPnCPiGx3XQ==/109951163272552080.jpg?param=100y100',duration:215000,lyrics:[]},
+        {id:1484174461,name:'漠河舞厅',artist:'柳爽',cover:'https://p2.music.126.net/K68LQEoxnBP-1QBNqyJQgw==/109951165307896621.jpg?param=100y100',duration:274000,lyrics:[]},
+        {id:1491889418,name:'踏山河',artist:'是七叔呢',cover:'https://p2.music.126.net/FZWn3yVCknEHjkqSEIKGqg==/109951165512774268.jpg?param=100y100',duration:208000,lyrics:[]},
+        {id:1840402115,name:'白月光与朱砂痣',artist:'大籽',cover:'https://p2.music.126.net/6qyzGcF7sBXgHBlaOGWzdA==/109951165279756997.jpg?param=100y100',duration:243000,lyrics:[]},
+        {id:1813224304,name:'云与海',artist:'阿YueYue',cover:'https://p2.music.126.net/Hw4xJ34u1THGtsJ3r2OoNw==/109951165232835284.jpg?param=100y100',duration:226000,lyrics:[]},
+        {id:1397058800,name:'连名带姓',artist:'周杰伦',cover:'https://p2.music.126.net/C1GW97srGSkAzKvlBK15eg==/109951163395205193.jpg?param=100y100',duration:258000,lyrics:[]},
+        {id:1463318496,name:'海底',artist:'一支榴莲',cover:'https://p2.music.126.net/DLcKjVi1mFqfJcTp_CeW7Q==/109951165182808627.jpg?param=100y100',duration:267000,lyrics:[]},
+        {id:1842025914,name:'可可托海的牧羊人',artist:'王琪',cover:'https://p2.music.126.net/NXZpKvHAcP-Vz_NHnDHcjQ==/109951165244213504.jpg?param=100y100',duration:325000,lyrics:[]},
+        {id:1412570242,name:'可能',artist:'程响',cover:'https://p2.music.126.net/l4qod9FUMknfqCLfAFOzWw==/109951165936655416.jpg?param=100y100',duration:296000,lyrics:[]},
+        {id:1806493589,name:'半生雪',artist:'是七叔呢',cover:'https://p2.music.126.net/eCxPsYmTMXvAO5yG2OX_3g==/109951165757234749.jpg?param=100y100',duration:209000,lyrics:[]},
+        {id:1842023876,name:'不如见一面',artist:'海来阿木',cover:'https://p2.music.126.net/n8jGSms3ym3u0bqLONoAAQ==/109951165268874439.jpg?param=100y100',duration:282000,lyrics:[]},
       ];
       hdTitle.textContent='我的歌单';
       setCover(tracks[0].cover); tipName.textContent=tracks[0].name; tipArtist.textContent=tracks[0].artist;
     }
     renderList();
     // Fetch lyrics for first few tracks in background
-    for(var li=0;li<Math.min(tracks.length,5);li++){ fetchLyrics(tracks[li].id, li); }
+    for(var li=0;li<Math.min(tracks.length,10);li++){ fetchLyrics(tracks[li].id, li); }
   }
 
   // ── Events ──
