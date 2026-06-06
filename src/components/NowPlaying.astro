@@ -189,13 +189,14 @@
       <small id="np-tip-artist">--</small>
     </div>
     <!-- Audio element (hidden) -->
-    <audio id="np-audio" preload="auto" crossorigin="anonymous" style="position:absolute;bottom:-100px;right:0;width:1px;height:1px;opacity:0;pointer-events:none"></audio>
+    <audio id="np-audio" preload="auto" style="position:absolute;bottom:-100px;right:0;width:1px;height:1px;opacity:0;pointer-events:none"></audio>
   </div>
 </div>
 
 <script is:inline>
 (function(){
   var PL_ID = 2953785286, API = '/api/netease';
+  var AUDIO_API = 'https://api.injahow.cn/meting/?server=netease&type=url';
 
   // DOM
   var $ = function(id){ return document.getElementById(id); };
@@ -252,8 +253,7 @@
   }
 
   function setAudioSrc(songId){
-    // Server proxy: fetches real URL server-side and 302 redirects
-    audio.src = API + '?type=song-url&id=' + songId;
+    audio.src = AUDIO_API + '&id=' + songId;
   }
 
   // ── Parse LRC lyrics ──
