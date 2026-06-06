@@ -480,15 +480,23 @@
   }
 
   // ── Events ──
-  mini.addEventListener('click',function(e){ e.preventDefault(); e.stopPropagation(); togglePanel(); });
+  // Mini vinyl: single click = play/pause, double click = open panel
+  mini.addEventListener('click',function(e){
+    e.preventDefault(); e.stopPropagation();
+    if(cur>=0 && tracks.length>0){
+      if(audio.paused){ audio.play(); } else { audio.pause(); }
+    } else {
+      togglePanel();
+    }
+  });
   mini.addEventListener('dblclick',function(e){
     e.preventDefault(); e.stopPropagation();
-    if(cur>=0) window.open('https://music.163.com/song?id='+tracks[cur].id,'_blank');
+    togglePanel();
   });
   npCover.addEventListener('click',function(e){
     e.stopPropagation();
     if(cur<0) return;
-    if(playing){ audio.pause(); } else { audio.play(); }
+    if(audio.paused){ audio.play(); } else { audio.pause(); }
   });
 
   document.addEventListener('click',function(e){
