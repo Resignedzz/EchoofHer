@@ -401,16 +401,44 @@
   }
 
   // ── Load ──
+  var MAX_TRACKS = 100;
+
+  async function fetchSongDetails(idList){
+    // Batch fetch song details, 100 per request
+    var all = [];
+    var chunkSize = 100;
+    for(var c=0; c<idList.length; c+=chunkSize){
+      var chunk = idList.slice(c, c+chunkSize);
+      try{
+        var idsStr = JSON.stringify(chunk);
+        var r = await fetch(API+'?type=song-detail&ids='+encodeURIComponent(idsStr));
+        if(!r.ok) continue;
+        var d = await r.json();
+        var songs = d.songs || [];
+        for(var s=0; s<songs.length; s++) all.push(songs[s]);
+      }catch(e){console.warn('[NP] song-detail batch fail:',e)}
+    }
+    return all;
+  }
+
   async function load(){
     try{
       var res=await fetch(API+'?type=playlist&id='+PL_ID);
       if(!res.ok) throw new Error(res.status);
       var data=await res.json(), pl=data.playlist;
-      if(!pl||!pl.tracks) throw new Error('no data');
+      if(!pl||!pl.trackIds) throw new Error('no data');
       hdTitle.textContent=(pl.name||'歌单')+' · '+(pl.creator?pl.creator.nickname||'':'');
-      var raw=pl.tracks||[];
+
+      // Get all track IDs (up to MAX_TRACKS)
+      var allIds=pl.trackIds||[], idSlice=[];
+      for(var k=0; k<allIds.length && k<MAX_TRACKS; k++) idSlice.push(allIds[k].id);
+
+      if(idSlice.length===0) throw new Error('empty ids');
+
+      // Batch fetch song details
+      var raw=await fetchSongDetails(idSlice);
       tracks=[];
-      for(var i=0;i<raw.length&&i<100;i++){
+      for(var i=0;i<raw.length&&i<MAX_TRACKS;i++){
         var r=raw[i];
         tracks.push({id:r.id||0,name:r.name||'',
           artist:(r.ar||[]).map(function(a){return a.name}).join(', '),
