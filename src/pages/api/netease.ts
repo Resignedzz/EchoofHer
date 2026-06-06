@@ -1,5 +1,5 @@
-// Cloudflare Functions / Netlify Functions compatible proxy for Netease Cloud Music API
-// Handles: playlist, song-detail, lyric
+// Cloudflare Functions / Astro SSR compatible proxy for Netease Cloud Music API
+// Handles: playlist, song-detail, lyric, song-url (audio redirect)
 
 const NETEASE_API = 'https://music.163.com';
 
@@ -12,6 +12,30 @@ export async function GET({ request }) {
   const id = url.searchParams.get('id');
   const ids = url.searchParams.get('ids');
 
+  // ── Audio redirect ──
+  if (type === 'song-url') {
+    const songId = id || '';
+    if (!songId) return new Response('Missing id', { status: 400 });
+
+    // Try NetEase API to get real URL
+    try {
+      const res = await fetch(`${NETEASE_API}/api/song/enhance/player/url?id=${songId}&ids=%5B${songId}%5D&br=320000`, {
+        headers: { 'User-Agent': UA, 'Referer': REFERER },
+      });
+      const data = await res.json();
+      const urls = data.data || [];
+      if (urls.length > 0 && urls[0].url) {
+        return Response.redirect(urls[0].url, 302);
+      }
+    } catch (_) {
+      // fallback below
+    }
+
+    // Fallback: outer/url (may not work for all songs)
+    return Response.redirect(`https://music.163.com/song/media/outer/url?id=${songId}.mp3`, 302);
+  }
+
+  // ── JSON API endpoints ──
   let apiPath = '';
   switch (type) {
     case 'playlist':
@@ -32,10 +56,7 @@ export async function GET({ request }) {
 
   try {
     const res = await fetch(`${NETEASE_API}${apiPath}`, {
-      headers: {
-        'User-Agent': UA,
-        'Referer': REFERER,
-      },
+      headers: { 'User-Agent': UA, 'Referer': REFERER },
     });
     const data = await res.json();
 
