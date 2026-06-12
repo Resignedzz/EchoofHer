@@ -22,9 +22,25 @@ const iconMap: Record<string, string> = {
 };
 
 const skills = [
-  { category: '前端', items: ['JavaScript', 'TypeScript', 'React', 'Vue', 'HTML/CSS', 'Tailwind'], color: '#8b8ba8' },
-  { category: '后端', items: ['Node.js', 'Python', 'Go'], color: '#6b6b8e' },
-  { category: '工具', items: ['Git', 'Docker', 'Linux', 'VS Code'], color: '#3b82f6' },
+  { category: '前端', items: ['JavaScript', 'TypeScript', 'React', 'Vue', 'HTML/CSS', 'Tailwind'], color: '#8b8ba8', links: {
+    'JavaScript': 'https://developer.mozilla.org/zh-CN/docs/Web/JavaScript',
+    'TypeScript': 'https://www.typescriptlang.org/docs/',
+    'React': 'https://react.dev/',
+    'Vue': 'https://vuejs.org/',
+    'HTML/CSS': 'https://developer.mozilla.org/zh-CN/docs/Web',
+    'Tailwind': 'https://tailwindcss.com/docs',
+  }},
+  { category: '后端', items: ['Node.js', 'Python', 'Go'], color: '#6b6b8e', links: {
+    'Node.js': 'https://nodejs.org/en/docs/',
+    'Python': 'https://docs.python.org/3/',
+    'Go': 'https://go.dev/doc/',
+  }},
+  { category: '工具', items: ['Git', 'Docker', 'Linux', 'VS Code'], color: '#3b82f6', links: {
+    'Git': 'https://git-scm.com/doc',
+    'Docker': 'https://docs.docker.com/',
+    'Linux': 'https://linux.die.net/',
+    'VS Code': 'https://code.visualstudio.com/docs',
+  }},
 ];
 ---
 
@@ -65,11 +81,14 @@ const skills = [
               </div>
 
               <!-- Items with icons -->
-              <div class="space-y-2">
+              <div class="space-y-1.5">
                 {group.items.map((item) => {
                   const icon = iconMap[item];
+                  const url = group.links?.[item];
+                  const tag = url ? 'a' : 'div';
+                  const attrs = url ? { href: url, target: '_blank', rel: 'noopener' } : {};
                   return (
-                    <div class="flex items-center gap-2.5 group/item">
+                    <a href={url || '#'} {...(url ? { target: '_blank', rel: 'noopener' } : {})} class="flex items-center gap-2.5 group/item no-underline" style={url ? '' : 'pointer-events:none'}>
                       {icon && (
                         <div class="w-5 h-5 shrink-0 flex items-center justify-center opacity-40 group-hover/item:opacity-100 transition-opacity duration-300">
                           <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" stroke="none">
@@ -77,8 +96,11 @@ const skills = [
                           </svg>
                         </div>
                       )}
-                      <span class="text-xs font-mono text-[var(--text-muted)] group-hover/item:text-[var(--text)] transition-colors duration-300">{item}</span>
-                    </div>
+                      <span class="text-xs font-mono text-[var(--text-muted)] group-hover/item:text-[var(--text)] transition-colors duration-300">
+                        {item}
+                        {url && <span class="text-[10px] opacity-0 group-hover/item:opacity-40 transition-opacity ml-1">↗</span>}
+                      </span>
+                    </a>
                   );
                 })}
               </div>

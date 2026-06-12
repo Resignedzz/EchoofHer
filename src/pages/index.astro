@@ -4,6 +4,9 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import GitHubHeatmap from '../components/GitHubHeatmap.astro';
 import HeroGlobe from '../components/HeroGlobe.astro';
+import BlogStats from '../components/BlogStats.astro';
+import TechStack from '../components/TechStack.astro';
+import Clock from '../components/Clock.astro';
 import { getCollection } from 'astro:content';
 
 const posts = (await getCollection('blog', ({ data }) => !data.draft))
@@ -20,6 +23,17 @@ const snippets = (await getCollection('snippets'))
 const books = (await getCollection('books'))
   .filter(b => b.data.status === 'reading')
   .slice(0, 2);
+
+// Dynamic stats
+const firstPost = posts.length > 0 ? posts.reduce((a, b) => a.data.date < b.data.date ? a : b) : null;
+const blogDays = firstPost ? Math.ceil((Date.now() - firstPost.data.date.valueOf()) / (1000 * 60 * 60 * 24)) : 0;
+const totalWords = posts.reduce((sum, p) => {
+  const chinese = (p.body || '').match(/[\u4e00-\u9fff]/g) || [];
+  const english = ((p.body || '').replace(/[\u4e00-\u9fff]/g, ' ').match(/\b\w+\b/g) || []);
+  return sum + chinese.length + english.length;
+}, 0);
+
+const totalWordsFormatted = totalWords.toLocaleString();
 ---
 
 <BaseLayout title="resigned's blog" description="A personal blog by resigned">
@@ -133,20 +147,20 @@ const books = (await getCollection('books'))
     <section class="mb-12" id="stats-section">
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-number" data-target="3" data-suffix="">0</div>
+          <div class="stat-number" data-target={posts.length} data-suffix="">0</div>
           <div class="stat-label">博客文章</div>
         </div>
         <div class="stat-card">
-          <div class="stat-number" data-target="1" data-suffix="">0</div>
+          <div class="stat-number" data-target={snippets.length} data-suffix="">0</div>
           <div class="stat-label">代码片段</div>
         </div>
         <div class="stat-card">
-          <div class="stat-number" data-target="42" data-suffix="">0</div>
+          <div class="stat-number" data-target={blogDays} data-suffix="">0</div>
           <div class="stat-label">运行天数</div>
         </div>
         <div class="stat-card">
-          <div class="stat-number" data-target="100" data-suffix="%">0</div>
-          <div class="stat-label">热情指数</div>
+          <div class="stat-number" data-target={totalWordsFormatted} data-suffix="">0</div>
+          <div class="stat-label">总字数</div>
         </div>
       </div>
     </section>
@@ -180,6 +194,23 @@ const books = (await getCollection('books'))
       </div>
     </section>
 
+    <!-- Now bar — what I'm up to -->
+    <section class="mb-8" id="now-section">
+      <div class="cyber-card p-5 flex flex-wrap items-center gap-4">
+        <div class="flex items-center gap-2 text-xs font-mono text-[var(--accent)]">
+          <span class="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse"></span>
+          正在做
+        </div>
+        <div class="h-4 w-px hidden sm:block" style="background:var(--border)"></div>
+        <span class="text-xs text-[var(--text-muted)] font-mono">
+          🧠 探索 AI Agent 框架 &nbsp;·&nbsp; ✍️ 技术写作 &nbsp;·&nbsp; 🎨 打磨这个博客
+        </span>
+        <div class="hidden sm:block ml-auto">
+          <a href="/about" class="text-xs font-mono text-[var(--accent-secondary)] hover:text-[var(--accent)] transition-colors">关于我 →</a>
+        </div>
+      </div>
+    </section>
+
     <div class="lg:flex lg:gap-12">
       <!-- Main content -->
       <div class="lg:flex-1 min-w-0">
@@ -192,7 +223,7 @@ const books = (await getCollection('books'))
         </section>
 
         <!-- Posts -->
-        <section class="mb-12" id="posts-section">
+        <section class="mb-8" id="posts-section">
           <h2 class="font-mono text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-5 flex items-center gap-2">
             <span class="text-[var(--accent)]">#</span> 最新文章
             <span class="ml-auto text-[10px] font-normal normal-case tracking-normal opacity-50">{posts.length} 篇</span>
@@ -248,6 +279,7 @@ const books = (await getCollection('books'))
             <div class="font-mono text-[10px] text-[var(--text-muted)] uppercase tracking-widest mb-3 flex items-center gap-2">
               <span class="text-[var(--accent)]">$</span> status
             </div>
+            <Clock />
             <div class="space-y-2.5 font-mono text-xs">
               <div class="flex items-center justify-between">
                 <span class="text-[var(--text-muted)]">blog</span>
@@ -286,6 +318,8 @@ const books = (await getCollection('books'))
                 { href: '/books', label: '阅读清单', icon: '◈' },
                 { href: '/projects', label: '项目', icon: '◈' },
                 { href: '/archive', label: '归档', icon: '◈' },
+                { href: '/tags', label: '标签', icon: '◈' },
+                { href: '/photos', label: '图库', icon: '◈' },
                 { href: '/about', label: '关于', icon: '◈' },
               ].map(link => (
                 <a href={link.href} class="flex items-center gap-2 text-xs font-mono text-[var(--text-muted)] hover:text-[var(--accent)] hover:translate-x-1 transition-all px-1 py-1 rounded">
@@ -294,6 +328,22 @@ const books = (await getCollection('books'))
                 </a>
               ))}
             </nav>
+          </div>
+
+          <!-- Tech Stack -->
+          <div class="cyber-card p-4">
+            <div class="font-mono text-[10px] text-[var(--text-muted)] uppercase tracking-widest mb-3 flex items-center gap-2">
+              <span class="text-[var(--accent)]">⚡</span> 技术栈
+            </div>
+            <TechStack />
+          </div>
+
+          <!-- Blog Stats -->
+          <div class="cyber-card p-4">
+            <div class="font-mono text-[10px] text-[var(--text-muted)] uppercase tracking-widest mb-3 flex items-center gap-2">
+              <span class="text-[var(--accent)]">#</span> stats
+            </div>
+            <BlogStats />
           </div>
 
           <!-- GitHub Contributions -->
@@ -321,7 +371,7 @@ const books = (await getCollection('books'))
       </aside>
     </div>
     <!-- FAQ -->
-    <section class="mb-12 mt-16" id="faq-section">
+    <section class="mb-8 mt-12" id="faq-section">
       <h2 class="font-mono text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-5 flex items-center gap-2">
         <span class="text-[var(--accent)]">#</span> 常见问题
       </h2>
@@ -450,13 +500,16 @@ const books = (await getCollection('books'))
     var counters = document.querySelectorAll('.stat-number');
     if (!counters.length) return;
     function animateCounter(el) {
-      var target = parseInt(el.getAttribute('data-target'));
+      var raw = (el.getAttribute('data-target') || '0').replace(/,/g, '');
+      var target = parseInt(raw, 10);
       var suffix = el.getAttribute('data-suffix') || '';
+      var useFormat = raw.length > 3;
       var duration = 1500, start = performance.now();
       function tick(now) {
         var progress = Math.min((now - start) / duration, 1);
         var ease = 1 - Math.pow(1 - progress, 3);
-        el.textContent = Math.round(ease * target) + suffix;
+        var val = Math.round(ease * target);
+        el.textContent = (useFormat ? val.toLocaleString() : val) + suffix;
         if (progress < 1) requestAnimationFrame(tick);
       }
       requestAnimationFrame(tick);
@@ -506,32 +559,60 @@ const books = (await getCollection('books'))
     var ctx = canvas.getContext('2d');
     if (!ctx) return;
     var W = 0, H = 0, rotation = 0, time = 0;
+    var dragAngleX = 0, dragAngleY = 0, isDragging = false, lastMX = 0, lastMY = 0;
 
-    // Scattered "land mass" dots on sphere surface
-    var dots = [];
-    for (var i = 0; i < 120; i++) {
-      var theta = Math.random() * Math.PI * 2;
-      var phi = Math.acos(2 * Math.random() - 1);
-      dots.push({
-        x: Math.sin(phi) * Math.cos(theta),
-        y: Math.sin(phi) * Math.sin(theta),
-        z: Math.cos(phi),
-        size: 0.6 + Math.random() * 1.2,
-        bright: 0.15 + Math.random() * 0.35
+    // Continent clusters — simulate land masses
+    var landDots = [];
+    var continents = [
+      { lat: 0.4, lon: 0.3, spread: 0.28, n: 40 },
+      { lat: -0.2, lon: -0.5, spread: 0.32, n: 35 },
+      { lat: 0.7, lon: -0.8, spread: 0.22, n: 25 },
+      { lat: -0.6, lon: 0.8, spread: 0.25, n: 30 },
+      { lat: 0.1, lon: -1.2, spread: 0.2, n: 22 },
+      { lat: -0.3, lon: 1.5, spread: 0.22, n: 18 },
+      { lat: 0.8, lon: 1.0, spread: 0.18, n: 15 },
+    ];
+    for (var ci = 0; ci < continents.length; ci++) {
+      var cont = continents[ci];
+      var phi0 = cont.lat * Math.PI, theta0 = cont.lon * Math.PI;
+      for (var j = 0; j < cont.n; j++) {
+        var phi = phi0 + (Math.random() - 0.5) * cont.spread * Math.PI;
+        var theta = theta0 + (Math.random() - 0.5) * cont.spread * Math.PI * 1.5;
+        var dist = Math.sqrt(Math.pow((phi - phi0) / (cont.spread * Math.PI / 2), 2) + Math.pow((theta - theta0) / (cont.spread * Math.PI * 0.75), 2));
+        if (dist > 1) { j--; continue; }
+        var brightFactor = 1 - dist * 0.6;
+        landDots.push({
+          x: Math.sin(phi) * Math.cos(theta),
+          y: Math.sin(phi) * Math.sin(theta),
+          z: Math.cos(phi),
+          size: 0.4 + Math.random() * 0.8,
+          bright: 0.2 + brightFactor * 0.5
+        });
+      }
+    }
+
+    // Cloud dots — slower rotation, semi-transparent
+    var cloudDots = [];
+    for (var ci2 = 0; ci2 < 55; ci2++) {
+      var phi2 = Math.random() * Math.PI;
+      var theta2 = Math.random() * Math.PI * 2;
+      cloudDots.push({
+        x: Math.sin(phi2) * Math.cos(theta2),
+        y: Math.sin(phi2) * Math.sin(theta2),
+        z: Math.cos(phi2),
+        size: 1.5 + Math.random() * 2.5,
+        bright: 0.04 + Math.random() * 0.06
       });
     }
 
-    // Connection arcs between random nearby dots
-    var arcs = [];
-    for (var a = 0; a < dots.length; a++) {
-      for (var b = a + 1; b < dots.length; b++) {
-        var dx = dots[a].x - dots[b].x;
-        var dy = dots[a].y - dots[b].y;
-        var dz = dots[a].z - dots[b].z;
-        if (Math.sqrt(dx*dx + dy*dy + dz*dz) < 0.9 && Math.random() > 0.7) {
-          arcs.push([a, b]);
-        }
-      }
+    // Background stars (static, around the globe)
+    var stars = [];
+    for (var si = 0; si < 80; si++) {
+      var sx = (Math.random() - 0.5) * 2;
+      var sy = (Math.random() - 0.5) * 2;
+      var sr = Math.sqrt(sx*sx + sy*sy);
+      if (sr < 0.7 || sr > 1) { si--; continue; }
+      stars.push({ x: sx, y: sy, size: 0.3 + Math.random() * 0.7, bright: 0.2 + Math.random() * 0.5 });
     }
 
     function resize() {
@@ -546,121 +627,275 @@ const books = (await getCollection('books'))
       var c = Math.cos(angle), s = Math.sin(angle);
       return { x: x*c - z*s, y: y, z: x*s + z*c };
     }
+    function rotX(x, y, z, angle) {
+      var c = Math.cos(angle), s = Math.sin(angle);
+      return { x: x, y: y*c - z*s, z: y*s + z*c };
+    }
 
-    function proj(x, y, z, R) {
-      return { x: W/2 + x*R, y: H/2 + y*R, z: z };
+    function rotatePoint(x, y, z, ax, ay) {
+      var r = rotY(x, y, z, ax);
+      return rotX(r.x, r.y, r.z, ay);
+    }
+    function proj(p, R) {
+      return { x: W/2 + p.x*R, y: H/2 + p.y*R, z: p.z };
     }
 
     function draw() {
       ctx.clearRect(0, 0, W, H);
-
-      var R = Math.min(W, H) * 0.38;
+      var R = Math.max(1, Math.min(W, H) * 0.36);
       var cx = W / 2, cy = H / 2;
+      if (W < 2 || H < 2) { requestAnimationFrame(draw); return; }
+      // Clip to circle
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, R * 1.12, 0, Math.PI * 2);
+      ctx.clip();
+      var isLight = document.documentElement.classList.contains('light');
       var lightAngle = -0.4 + Math.sin(time * 0.3) * 0.15;
       var lx = Math.cos(lightAngle), lz = Math.sin(lightAngle);
 
-      // Outer atmosphere glow
-      var g0 = ctx.createRadialGradient(cx, cy, R * 0.9, cx, cy, R * 1.5);
-      g0.addColorStop(0, 'rgba(120,100,220,0.04)');
-      g0.addColorStop(0.5, 'rgba(100,80,200,0.02)');
+      // Outer atmosphere glow — breathing pulse
+      var breathe = 1 + Math.sin(time * 0.8) * 0.06;
+      var g0 = ctx.createRadialGradient(cx, cy, R * 0.85, cx, cy, R * 1.12 * breathe);
+      g0.addColorStop(0, 'rgba(255,140,40,' + (isLight ? 0.14 : 0.1) + ')');
+      g0.addColorStop(0.4, 'rgba(255,110,20,' + (isLight ? 0.08 : 0.05) + ')');
+      g0.addColorStop(0.7, 'rgba(100,140,255,' + (isLight ? 0.04 : 0.03) + ')');
       g0.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = g0;
       ctx.beginPath();
-      ctx.arc(cx, cy, R * 1.5, 0, Math.PI * 2);
+      ctx.arc(cx, cy, R * 1.12 * breathe, 0, Math.PI * 2);
       ctx.fill();
 
-      // Main sphere body — dark gradient
+      // Main sphere body — ocean blue with warm light
+      var bodyA = isLight ? 0 : 0.3;
+      var bodyB = isLight ? 0 : 0.2;
+      var bodyC = isLight ? 0 : 0.12;
+      var bodyD = isLight ? 0 : 0.04;
+      var bgR = isLight ? 40 : 20, bgG = isLight ? 55 : 35, bgB = isLight ? 110 : 80;
       var g1 = ctx.createRadialGradient(
-        cx + R * lx * 0.3, cy - R * 0.15, R * 0.1,
-        cx, cy, R
+        cx + R * lx * 0.3, cy - R * 0.15, R * 0.05,
+        cx - R * lx * 0.2, cy + R * 0.1, R
       );
-      g1.addColorStop(0, 'rgba(40,35,60,0.25)');
-      g1.addColorStop(0.5, 'rgba(20,18,40,0.2)');
-      g1.addColorStop(0.85, 'rgba(12,10,25,0.15)');
-      g1.addColorStop(1, 'rgba(5,5,15,0.05)');
+      g1.addColorStop(0, 'rgba(' + (bgR+30) + ',' + (bgG+25) + ',' + (bgB+20) + ',' + bodyA + ')');
+      g1.addColorStop(0.4, 'rgba(' + bgR + ',' + bgG + ',' + bgB + ',' + bodyB + ')');
+      g1.addColorStop(0.75, 'rgba(' + (bgR-10) + ',' + (bgG-15) + ',' + (bgB-10) + ',' + bodyC + ')');
+      g1.addColorStop(0.95, 'rgba(' + (bgR-15) + ',' + (bgG-20) + ',' + (bgB-15) + ',' + (bodyD * 0.5) + ')');
+      g1.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = g1;
       ctx.beginPath();
       ctx.arc(cx, cy, R, 0, Math.PI * 2);
       ctx.fill();
 
-      // Rim light — cool blue-white on one side
+      // Shadow terminator — dark side
+      var tGrad = ctx.createLinearGradient(
+        cx - R * lx * 0.8, cy, cx + R * lx * 1.2, cy
+      );
+      tGrad.addColorStop(0, 'rgba(0,0,0,' + (isLight ? 0.2 : 0.35) + ')');
+      tGrad.addColorStop(0.45, 'rgba(0,0,0,' + (isLight ? 0.1 : 0.15) + ')');
+      tGrad.addColorStop(0.55, 'rgba(0,0,0,0)');
+      tGrad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = tGrad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Specular highlight
+      var spGrad = ctx.createRadialGradient(
+        cx + R * lx * 0.35, cy - R * 0.3, R * 0.02,
+        cx + R * lx * 0.35, cy - R * 0.3, R * 0.3
+      );
+      spGrad.addColorStop(0, 'rgba(255,240,200,' + (isLight ? 0.25 : 0.15) + ')');
+      spGrad.addColorStop(0.4, 'rgba(255,220,160,' + (isLight ? 0.08 : 0.05) + ')');
+      spGrad.addColorStop(1, 'rgba(255,200,120,0)');
+      ctx.fillStyle = spGrad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Rim light — warm gold
+      var rimA1 = isLight ? 0.1 : 0.07;
+      var rimA2 = isLight ? 0.2 : 0.16;
+      var rimA3 = isLight ? 0.1 : 0.06;
       var g2 = ctx.createRadialGradient(
         cx + R * 0.55, cy - R * 0.1, R * 0.6,
         cx, cy, R
       );
-      g2.addColorStop(0, 'rgba(140,140,255,0)');
-      g2.addColorStop(0.75, 'rgba(140,140,255,0.04)');
-      g2.addColorStop(0.92, 'rgba(160,150,255,0.1)');
-      g2.addColorStop(0.97, 'rgba(140,140,255,0.05)');
-      g2.addColorStop(1, 'rgba(140,140,255,0)');
+      g2.addColorStop(0, 'rgba(255,180,60,0)');
+      g2.addColorStop(0.75, 'rgba(255,180,60,' + rimA1 + ')');
+      g2.addColorStop(0.92, 'rgba(255,200,100,' + rimA2 + ')');
+      g2.addColorStop(0.97, 'rgba(255,180,60,' + rimA3 + ')');
+      g2.addColorStop(1, 'rgba(255,180,60,0)');
       ctx.fillStyle = g2;
       ctx.beginPath();
       ctx.arc(cx, cy, R, 0, Math.PI * 2);
       ctx.fill();
 
-      // Subtle purple rim accent (opposite side)
+      // Warm amber rim accent (opposite side)
+      var purA = isLight ? 0.12 : 0.08;
       var g3 = ctx.createRadialGradient(
         cx - R * 0.45, cy + R * 0.2, R * 0.6,
         cx, cy, R
       );
-      g3.addColorStop(0, 'rgba(160,120,255,0)');
-      g3.addColorStop(0.8, 'rgba(160,120,255,0.02)');
-      g3.addColorStop(0.94, 'rgba(160,120,255,0.06)');
-      g3.addColorStop(1, 'rgba(160,120,255,0)');
+      g3.addColorStop(0, 'rgba(255,120,30,0)');
+      g3.addColorStop(0.8, 'rgba(255,120,30,' + (purA * 0.4) + ')');
+      g3.addColorStop(0.94, 'rgba(255,120,30,' + (purA * 0.6) + ')');
+      g3.addColorStop(1, 'rgba(255,120,30,0)');
       ctx.fillStyle = g3;
       ctx.beginPath();
       ctx.arc(cx, cy, R, 0, Math.PI * 2);
       ctx.fill();
 
-      // Thin bright rim stroke
-      ctx.strokeStyle = 'rgba(140,140,220,0.08)';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.arc(cx, cy, R - 0.5, 0, Math.PI * 2);
-      ctx.stroke();
-
-      // Draw dots (rotating)
-      for (var i = 0; i < dots.length; i++) {
-        var d = dots[i];
-        var r = rotY(d.x, d.y, d.z, rotation);
-        if (r.z < -0.2) continue; // backface cull
-        var p = proj(r.x, r.y, r.z, R);
-        var facing = (r.z + 1) / 2; // 0 edge, 1 center
-        var alpha = d.bright * facing * 0.6;
-        ctx.fillStyle = 'rgba(160,150,240,' + alpha + ')';
+      // Draw stars (static twinkling, varying colors)
+      for (var si = 0; si < stars.length; si++) {
+        var st = stars[si];
+        var twinkle = st.bright * (0.4 + 0.6 * Math.sin(time * (1.5 + si * 0.1) + si * 2.3));
+        var starColors = ['255,220,180', '200,220,255', '255,200,150', '220,200,255'];
+        var sc = starColors[si % starColors.length];
+        ctx.fillStyle = 'rgba(' + sc + ',' + twinkle + ')';
         ctx.beginPath();
-        ctx.arc(p.x, p.y, d.size * facing, 0, Math.PI * 2);
+        ctx.arc(W/2 + st.x * W * 0.48, H/2 + st.y * H * 0.48, st.size, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      // Draw connection arcs
-      for (var a = 0; a < arcs.length; a++) {
-        var d1 = dots[arcs[a][0]];
-        var d2 = dots[arcs[a][1]];
-        var r1 = rotY(d1.x, d1.y, d1.z, rotation);
-        var r2 = rotY(d2.x, d2.y, d2.z, rotation);
-        if (r1.z < 0 || r2.z < 0) continue;
-        var avgZ = (r1.z + r2.z) / 2;
-        if (avgZ < 0.1) continue;
-        var p1 = proj(r1.x, r1.y, r1.z, R);
-        var p2 = proj(r2.x, r2.y, r2.z, R);
-        ctx.strokeStyle = 'rgba(140,140,220,' + (avgZ * 0.08) + ')';
-        ctx.lineWidth = 0.5;
+      // Draw land dots (rotating)
+      var dotColor = isLight ? 'rgba(180,60,0,' : 'rgba(255,180,80,';
+      for (var i = 0; i < landDots.length; i++) {
+        var d = landDots[i];
+        var r = rotatePoint(d.x, d.y, d.z, rotation + dragAngleX, dragAngleY);
+        if (r.z < -0.15) continue;
+        var p = proj(r, R);
+        var facing = (r.z + 1) / 2;
+        var alpha = d.bright * facing * (isLight ? 1.3 : 0.55);
+        ctx.fillStyle = dotColor + alpha + ')';
         ctx.beginPath();
-        ctx.moveTo(p1.x, p1.y);
-        // Bezier arc through midpoint lifted above sphere
-        var mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
-        var lift = 1 - avgZ;
-        ctx.quadraticCurveTo(mx + (mx - cx) * lift * 0.3, my + (my - cy) * lift * 0.3, p2.x, p2.y);
-        ctx.stroke();
+        ctx.arc(p.x, p.y, d.size * (isLight ? (0.8 + facing * 0.5) : (0.6 + facing * 0.4)), 0, Math.PI * 2);
+        ctx.fill();
       }
 
-      rotation += 0.001;
+      // Draw cloud layer (slower rotation)
+      for (var ci3 = 0; ci3 < cloudDots.length; ci3++) {
+        var cd = cloudDots[ci3];
+        var cr = rotatePoint(cd.x, cd.y, cd.z, rotation * 0.3 + dragAngleX * 0.3, dragAngleY * 0.3);
+        if (cr.z < 0) continue;
+        var cp = proj(cr, R);
+        var cfacing = (cr.z + 1) / 2;
+        var calpha = cd.bright * cfacing;
+        ctx.fillStyle = 'rgba(255,200,150,' + calpha + ')';
+        ctx.beginPath();
+        ctx.arc(cp.x, cp.y, cd.size * cfacing, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      rotation += isDragging ? 0 : 0.001;
       time += 0.016;
+      // Thin atmosphere rim — breathing
+      var rimGrad = ctx.createRadialGradient(cx, cy, R - 2, cx, cy, R + 4 * breathe);
+      rimGrad.addColorStop(0, 'rgba(255,200,100,0)');
+      rimGrad.addColorStop(0.4, 'rgba(255,200,100,' + (isLight ? 0.25 : 0.1) + ')');
+      rimGrad.addColorStop(0.7, 'rgba(120,160,255,' + (isLight ? 0.12 : 0.04) + ')');
+      rimGrad.addColorStop(1, 'rgba(120,160,255,0)');
+      ctx.fillStyle = rimGrad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, R + 4 * breathe, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Subtle orbit ring
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(1, 0.25);
+      ctx.strokeStyle = 'rgba(255,200,120,' + (isLight ? 0.15 : 0.05) + ')';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.arc(0, 0, R * 1.35, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+
+      ctx.restore();
       requestAnimationFrame(draw);
     }
 
+    // Mouse drag to rotate globe
+    canvas.addEventListener('mousedown', function(e) {
+      isDragging = true; lastMX = e.clientX; lastMY = e.clientY;
+    });
+    window.addEventListener('mousemove', function(e) {
+      if (!isDragging) return;
+      dragAngleX += (e.clientX - lastMX) * 0.008;
+      dragAngleY += (e.clientY - lastMY) * 0.008;
+      lastMX = e.clientX; lastMY = e.clientY;
+    });
+    window.addEventListener('mouseup', function() {
+      if (!isDragging) return;
+      isDragging = false;
+      rotation += dragAngleX;
+      dragAngleX = 0;
+    });
+    // Touch support
+    canvas.addEventListener('touchstart', function(e) {
+      isDragging = true; lastMX = e.touches[0].clientX; lastMY = e.touches[0].clientY;
+    }, {passive:true});
+    window.addEventListener('touchmove', function(e) {
+      if (!isDragging) return;
+      dragAngleX += (e.touches[0].clientX - lastMX) * 0.008;
+      dragAngleY += (e.touches[0].clientY - lastMY) * 0.008;
+      lastMX = e.touches[0].clientX; lastMY = e.touches[0].clientY;
+    }, {passive:true});
+    window.addEventListener('touchend', function() {
+      if (!isDragging) return;
+      isDragging = false;
+      rotation += dragAngleX;
+      dragAngleX = 0;
+    });
+
     resize(); draw();
     window.addEventListener('resize', resize);
+  })();
+</script>
+
+<script is:inline>
+  // Hero typing effect
+  (function(){
+    var el = document.getElementById('hero-typing');
+    if (!el) return;
+    var texts = [
+      '软件智能工程师。写代码、写想法、写生活。',
+      'Building things at the edge of AI and engineering.',
+      'Exploring the space between code and creativity.'
+    ];
+    var idx = 0, charIdx = 0, isDeleting = false, currentText = '';
+    var cursor = document.createElement('span');
+    cursor.className = 'typing-cursor';
+    cursor.textContent = '|';
+
+    function type() {
+      var full = texts[idx];
+      if (!isDeleting) {
+        currentText = full.substring(0, charIdx + 1);
+        charIdx++;
+        if (charIdx === full.length) {
+          setTimeout(function(){ isDeleting = true; type(); }, 2500);
+        } else {
+          el.innerHTML = currentText + '<span class="typing-cursor">|</span>';
+          setTimeout(type, 60 + Math.random() * 40);
+        }
+      } else {
+        currentText = full.substring(0, charIdx - 1);
+        charIdx--;
+        if (charIdx === 0) {
+          isDeleting = false;
+          idx = (idx + 1) % texts.length;
+          setTimeout(type, 400);
+        } else {
+          el.innerHTML = currentText + '<span class="typing-cursor">|</span>';
+          setTimeout(type, 25 + Math.random() * 15);
+        }
+      }
+    }
+    setTimeout(type, 800);
+
+    // Inject cursor blink style
+    var style = document.createElement('style');
+    style.textContent = '.typing-cursor{color:var(--accent);animation:tc-blink .8s step-end infinite}@keyframes tc-blink{0%,100%{opacity:1}50%{opacity:0}}';
+    document.head.appendChild(style);
   })();
 </script>

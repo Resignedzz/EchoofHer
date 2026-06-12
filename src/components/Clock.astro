@@ -1,0 +1,83 @@
+<div class="clock-wrap">
+  <svg id="clock-svg" viewBox="0 0 100 100" class="clock-svg">
+    <!-- Tick marks -->
+    <g id="clock-ticks"></g>
+    <!-- Hands -->
+    <line id="clock-hour" x1="50" y1="50" x2="50" y2="28" stroke-linecap="round" />
+    <line id="clock-min" x1="50" y1="50" x2="50" y2="22" stroke-linecap="round" />
+    <line id="clock-sec" x1="50" y1="50" x2="50" y2="22" stroke-linecap="round" />
+    <!-- Center dot -->
+    <circle cx="50" cy="50" r="2.5" fill="var(--accent)" />
+  </svg>
+</div>
+
+<style is:inline>
+.clock-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
+}
+.clock-svg {
+  width: 72px;
+  height: 72px;
+  filter: drop-shadow(0 2px 8px rgba(var(--accent-rgb, 224 224 240), 0.06));
+}
+#clock-hour { stroke: var(--accent); stroke-width: 3; }
+#clock-min { stroke: var(--accent-secondary); stroke-width: 1.8; }
+#clock-sec { stroke: rgba(255,180,80,0.7); stroke-width: 0.8; }
+</style>
+
+<script is:inline>
+(function(){
+  var svg = document.getElementById('clock-svg');
+  if (!svg) return;
+
+  // Draw tick marks
+  var ticks = document.getElementById('clock-ticks');
+  var html = '';
+  for (var i = 0; i < 60; i++) {
+    var angle = (i * 6 - 90) * Math.PI / 180;
+    var inner = i % 5 === 0 ? 5 : 8;
+    var x1 = 50 + Math.cos(angle) * (50 - inner);
+    var y1 = 50 + Math.sin(angle) * (50 - inner);
+    var x2 = 50 + Math.cos(angle) * 44;
+    var y2 = 50 + Math.sin(angle) * 44;
+    var w = i % 5 === 0 ? '1.2' : '0.4';
+    var color = i % 5 === 0 ? 'var(--text-muted)' : 'var(--border)';
+    html += '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+color+'" stroke-width="'+w+'" stroke-linecap="round"/>';
+  }
+  ticks.innerHTML = html;
+
+  var hourHand = document.getElementById('clock-hour');
+  var minHand = document.getElementById('clock-min');
+  var secHand = document.getElementById('clock-sec');
+
+  function update() {
+    var now = new Date();
+    var h = now.getHours() % 12;
+    var m = now.getMinutes();
+    var s = now.getSeconds();
+    var ms = now.getMilliseconds();
+
+    var secAngle = (s + ms / 1000) * 6 - 90;
+    var minAngle = (m + s / 60) * 6 - 90;
+    var hourAngle = (h + m / 60) * 30 - 90;
+
+    setHand(secHand, secAngle, 28);
+    setHand(minHand, minAngle, 24);
+    setHand(hourHand, hourAngle, 18);
+  }
+
+  function setHand(hand, angle, length) {
+    var rad = angle * Math.PI / 180;
+    var cx = 50, cy = 50;
+    hand.setAttribute('x1', cx);
+    hand.setAttribute('y1', cy);
+    hand.setAttribute('x2', cx + Math.cos(rad) * length);
+    hand.setAttribute('y2', cy + Math.sin(rad) * length);
+  }
+
+  update();
+  setInterval(update, 1000);
+})();
+</script>

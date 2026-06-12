@@ -1,0 +1,352 @@
+<canvas id="starfield" aria-hidden="true"></canvas>
+
+<style is:inline>
+  #starfield {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+</style>
+
+<script is:inline>
+  (function() {
+    var canvas = document.getElementById('starfield');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var W, H, raf;
+    var particles = [];
+    var bgStars = [];
+    var petals = [];
+    // Camera
+    var zoom = 0, targetZoom = 0;
+    var tilt = 0.785;
+    var rotSpeed = 0.00035;
+    var rotation = 0;
+    var focalLength = 250;
+    var time = 0;
+
+    function resize() {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    // ══════════════ Build Galaxy ══════════════
+    function buildGalaxy() {
+      particles = [];
+      var armParticles = 800;
+      var bulgeParticles = 600;
+      var arms = 2;
+      var r0 = 6;
+      var growth = 0.26;
+      var scatterBase = 12;
+      var heightScatter = 6;
+      var maxTheta = 6.5 * Math.PI;
+
+      for (var a = 0; a < arms; a++) {
+        var armOffset = a * Math.PI;
+        for (var i = 0; i < armParticles; i++) {
+          var t = Math.pow(Math.random(), 0.6) * maxTheta; // bias toward center
+          var r = r0 * Math.exp(growth * t);
+          var scatter = scatterBase * (1 + r * 0.015);
+          r += (Math.random() - 0.5) * scatter * 1.5;
+          t += ((Math.random() - 0.5) * scatter * 1.2) / (r + 0.5);
+          var angle = t + armOffset;
+          var x = r * Math.cos(angle);
+          var y = r * Math.sin(angle);
+          var z = (Math.random() - 0.5) * heightScatter * 2;
+
+          var dist = r / (r0 * Math.exp(growth * maxTheta));
+          var hue = 340 - dist * 25;
+          var sat = 30 + (1 - dist) * 55;
+          var light = 50 + (1 - dist) * 45;
+          var alpha = 0.15 + (1 - dist) * 0.45;
+
+          particles.push({
+            x: x, y: y, z: z,
+            baseR: 0.3 + Math.random() * 1.6,
+            hue: hue, sat: sat, light: light,
+            alpha: alpha,
+            twinklePhase: Math.random() * Math.PI * 2,
+            twinkleSpeed: 0.002 + Math.random() * 0.008,
+            type: 'arm'
+          });
+        }
+      }
+
+      // Central bulge — layered
+      for (var b = 0; b < bulgeParticles; b++) {
+        var br = Math.pow(Math.random(), 1.3) * 55;
+        var ba = Math.random() * Math.PI * 2;
+        var x = br * Math.cos(ba);
+        var y = br * Math.sin(ba);
+        var z = (Math.random() - 0.5) * br * 0.25;
+        var bright = 1 - br / 55;
+        var nearCenter = br < 10;
+        particles.push({
+          x: x, y: y, z: z,
+          baseR: nearCenter ? 0.8 + Math.random() * 2.8 : 0.4 + Math.random() * 1.8,
+          hue: 0, sat: 0,
+          light: 75 + bright * 25,
+          alpha: 0.2 + bright * 0.4,
+          twinklePhase: Math.random() * Math.PI * 2,
+          twinkleSpeed: nearCenter ? 0.01 + Math.random() * 0.02 : 0,
+          type: 'bulge'
+        });
+      }
+
+      // Background distant stars
+      bgStars = [];
+      for (var s = 0; s < 300; s++) {
+        bgStars.push({
+          x: Math.random() * W,
+          y: Math.random() * H,
+          r: 0.3 + Math.random() * 1,
+          alpha: 0.15 + Math.random() * 0.4,
+          twinklePhase: Math.random() * Math.PI * 2,
+          twinkleSpeed: 0.001 + Math.random() * 0.006,
+          hue: 200 + Math.random() * 60
+        });
+      }
+
+      // 3D Petals system for light mode
+      petals = [];
+      var petalHues = [330, 345, 310, 355, 280, 0]; // pink, rose, magenta, soft pink, lavender, white
+      // Petals for light mode — simple & performant
+      petals = [];
+      var petalCount = 150;
+      var petalHues = [330, 345, 310, 355, 0]; // pink/rose/magenta/soft-pink/white
+      var ww = W || 1920, hh = H || 1080;
+      for (var pt = 0; pt < petalCount; pt++) {
+        var hue = petalHues[Math.floor(Math.random() * petalHues.length)];
+        petals.push({
+          x: Math.random() * ww,
+          y: Math.random() * hh - hh, // spread above viewport
+          z: Math.random() * 3 + 1,   // depth: 1-4
+          size: 0,
+          speedY: 0,
+          speedX: 0,
+          rotation: Math.random() * Math.PI * 2,
+          rotationSpeed: Math.random() * 0.04 - 0.02,
+          opacity: Math.random() * 0.6 + 0.4,
+          hue: hue,
+          sat: hue === 0 ? 0 : 50 + Math.random() * 30,
+          light: hue === 0 ? 80 + Math.random() * 15 : 50 + Math.random() * 25,
+        });
+        var p = petals[pt];
+        p.size = p.z * 2;
+        p.speedY = p.z * 0.8;
+        p.speedX = (Math.random() - 0.5) * 0.6;
+      }
+    }
+    buildGalaxy();
+    window.addEventListener('resize', buildGalaxy);
+
+    // ══════════════ Projection ══════════════
+    function project(x, y, z) {
+      var cosR = Math.cos(rotation), sinR = Math.sin(rotation);
+      var rx = x * cosR - y * sinR;
+      var ry = x * sinR + y * cosR;
+      var rz = z;
+      var cosT = Math.cos(tilt), sinT = Math.sin(tilt);
+      var ty = ry * cosT - rz * sinT;
+      var tz = ry * sinT + rz * cosT;
+      var f = focalLength + zoom;
+      var scale = f / (tz + f);
+      return { sx: W / 2 + rx * scale, sy: H / 2 + ty * scale, scale: scale };
+    }
+
+    // ══════════════ Scroll/Pinch Zoom ══════════════
+    canvas.addEventListener('wheel', function(e) {
+      e.preventDefault();
+      targetZoom = Math.max(-400, Math.min(800, targetZoom - e.deltaY * 1.2));
+    }, { passive: false });
+
+    var lastPinchDist = 0;
+    canvas.addEventListener('touchstart', function(e) {
+      if (e.touches.length === 2)
+        lastPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    }, { passive: true });
+    canvas.addEventListener('touchmove', function(e) {
+      if (e.touches.length === 2) {
+        var d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        targetZoom += (d - lastPinchDist) * 0.8;
+        lastPinchDist = d;
+        targetZoom = Math.max(-400, Math.min(800, targetZoom));
+      }
+    }, { passive: true });
+
+    // ══════════════ Theme detection ══════════════
+    var isDark = !document.documentElement.classList.contains('light');
+    function readTheme() {
+      isDark = !document.documentElement.classList.contains('light');
+    }
+    // Watch theme changes
+    new MutationObserver(readTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+    // ══════════════ Draw ══════════════
+    function draw(t) {
+      raf = requestAnimationFrame(draw);
+      time = t;
+      zoom += (targetZoom - zoom) * 0.08;
+      rotation += rotSpeed;
+
+      // Background
+      if (isDark) {
+        ctx.fillStyle = '#020208';
+      } else {
+        // Soft warm nebula gradient for light mode
+        var bgGrad = ctx.createRadialGradient(W * 0.3, H * 0.3, 0, W * 0.5, H * 0.5, Math.max(W, H));
+        bgGrad.addColorStop(0, '#eae4f2');
+        bgGrad.addColorStop(0.5, '#e0d8ec');
+        bgGrad.addColorStop(1, '#d4cce2');
+        ctx.fillStyle = bgGrad;
+      }
+      ctx.fillRect(0, 0, W, H);
+
+      // ── Background stars (dark only) ──
+      if (isDark) {
+        for (var s = 0; s < bgStars.length; s++) {
+          var bs = bgStars[s];
+          var ba = bs.alpha * (0.5 + 0.5 * Math.sin(time * bs.twinkleSpeed + bs.twinklePhase));
+          ctx.fillStyle = 'hsla(' + bs.hue + ',20%,75%,' + ba + ')';
+          ctx.fillRect(bs.x - bs.r / 2, bs.y - bs.r / 2, bs.r, bs.r);
+        }
+      }
+
+      if (isDark) {
+        // ══════════════ DARK: Galaxy ══════════════
+        var core = project(0, 0, 0);
+        var coreScale = core.scale;
+
+        var armParams = [
+          { offset: 0, hue: 340 },
+          { offset: Math.PI, hue: 345 }
+        ];
+        var r0b = 6, growthB = 0.26, maxTB = 6.5 * Math.PI;
+
+        for (var ab = 0; ab < 2; ab++) {
+          var ap = armParams[ab];
+          ctx.beginPath();
+          var first = true;
+          for (var tb = 0; tb <= maxTB; tb += 0.02) {
+            var r = r0b * Math.exp(growthB * tb);
+            if (r > 550) break;
+            var x = r * Math.cos(tb + ap.offset);
+            var y = r * Math.sin(tb + ap.offset);
+            var proj = project(x, y, 0);
+            if (first) { ctx.moveTo(proj.sx, proj.sy); first = false; }
+            else ctx.lineTo(proj.sx, proj.sy);
+          }
+          ctx.strokeStyle = 'hsla(' + ap.hue + ',30%,70%,0.02)';
+          ctx.lineWidth = 35 * coreScale;
+          ctx.stroke();
+          ctx.strokeStyle = 'hsla(' + ap.hue + ',25%,80%,0.015)';
+          ctx.lineWidth = 12 * coreScale;
+          ctx.stroke();
+        }
+
+        var haloGrad = ctx.createRadialGradient(core.sx, core.sy, 0, core.sx, core.sy, 120 * coreScale);
+        haloGrad.addColorStop(0, 'rgba(255,255,255,0.25)');
+        haloGrad.addColorStop(0.05, 'rgba(255,245,255,0.15)');
+        haloGrad.addColorStop(0.2, 'rgba(255,220,235,0.06)');
+        haloGrad.addColorStop(0.5, 'rgba(255,180,210,0.015)');
+        haloGrad.addColorStop(1, 'transparent');
+        ctx.beginPath();
+        ctx.arc(core.sx, core.sy, 120 * coreScale, 0, Math.PI * 2);
+        ctx.fillStyle = haloGrad;
+        ctx.fill();
+
+        var projected = [];
+        for (var i = 0; i < particles.length; i++) {
+          var p = particles[i];
+          var proj = project(p.x, p.y, p.z);
+          if (proj.sx > -30 && proj.sx < W + 30 && proj.sy > -30 && proj.sy < H + 30 && proj.scale > 0.01) {
+            projected.push({ idx: i, scale: proj.scale, sx: proj.sx, sy: proj.sy });
+          }
+        }
+        projected.sort(function(a, b) { return a.scale - b.scale; });
+
+        for (var j = 0; j < projected.length; j++) {
+          var pr = projected[j];
+          var p = particles[pr.idx];
+          var size = p.baseR * pr.scale;
+          if (size < 0.25) continue;
+          var twinkle = 1;
+          if (p.twinkleSpeed > 0) {
+            twinkle = 0.7 + 0.3 * Math.sin(time * p.twinkleSpeed + p.twinklePhase);
+          }
+          var a = p.alpha * twinkle * Math.min(1, pr.scale * 1.8);
+          var r = size;
+          ctx.beginPath();
+          ctx.arc(pr.sx, pr.sy, r, 0, Math.PI * 2);
+          ctx.fillStyle = 'hsla(' + p.hue + ',' + p.sat + '%,' + p.light + '%,' + a + ')';
+          ctx.fill();
+          if (p.light > 75 && r > 0.8) {
+            ctx.beginPath();
+            ctx.arc(pr.sx, pr.sy, r * 2.5, 0, Math.PI * 2);
+            ctx.fillStyle = 'hsla(' + p.hue + ',' + p.sat + '%,' + p.light + '%,' + (a * 0.04) + ')';
+            ctx.fill();
+          }
+        }
+
+        var innerGrad = ctx.createRadialGradient(core.sx, core.sy, 0, core.sx, core.sy, 15 * coreScale);
+        innerGrad.addColorStop(0, 'rgba(255,255,255,0.55)');
+        innerGrad.addColorStop(0.3, 'rgba(255,255,255,0.18)');
+        innerGrad.addColorStop(0.7, 'rgba(255,220,240,0.05)');
+        innerGrad.addColorStop(1, 'transparent');
+        ctx.beginPath();
+        ctx.arc(core.sx, core.sy, 15 * coreScale, 0, Math.PI * 2);
+        ctx.fillStyle = innerGrad;
+        ctx.fill();
+
+      } else {
+        // ══════════════ LIGHT: Cherry Blossom Petals ══════════════
+        for (var pt = 0; pt < petals.length; pt++) {
+          var pet = petals[pt];
+          // Wind + gravity
+          pet.y += pet.speedY;
+          pet.x += pet.speedX + Math.sin(pet.y / 120) * 0.5;
+          pet.rotation += pet.rotationSpeed;
+
+          // Recycle to top
+          if (pet.y > H + 40) {
+            pet.y = -40 - Math.random() * 20;
+            pet.x = Math.random() * W;
+          }
+          if (pet.x < -30) pet.x = W + 20;
+          if (pet.x > W + 30) pet.x = -20;
+
+          ctx.save();
+          ctx.translate(pet.x, pet.y);
+          ctx.rotate(pet.rotation);
+          ctx.globalAlpha = pet.opacity;
+          ctx.fillStyle = 'hsla(' + pet.hue + ',' + pet.sat + '%,' + pet.light + '%,' + pet.opacity + ')';
+          ctx.beginPath();
+          ctx.ellipse(0, 0, pet.size, pet.size * 0.6, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // Soft ambient glows
+        var g1 = ctx.createRadialGradient(W * 0.25, H * 0.6, 0, W * 0.25, H * 0.6, 180);
+        g1.addColorStop(0, 'rgba(255,190,200,0.025)');
+        g1.addColorStop(1, 'transparent');
+        ctx.fillStyle = g1; ctx.fillRect(0, 0, W, H);
+
+        var g2 = ctx.createRadialGradient(W * 0.75, H * 0.4, 0, W * 0.75, H * 0.4, 140);
+        g2.addColorStop(0, 'rgba(200,160,220,0.02)');
+        g2.addColorStop(1, 'transparent');
+        ctx.fillStyle = g2; ctx.fillRect(0, 0, W, H);
+      }
+    }
+
+    raf = requestAnimationFrame(draw);
+
+    window.addEventListener('beforeunload', function() {
+      cancelAnimationFrame(raf);
+    });
+  })();
+</script>

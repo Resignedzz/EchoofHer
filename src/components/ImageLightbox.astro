@@ -1,0 +1,95 @@
+<!-- ImageLightbox — global component, injected into BlogPostLayout -->
+<!-- Detects clicks on article images, shows dark overlay with zoomed image -->
+
+<div id="lightbox" class="lb-overlay">
+  <div class="lb-bg"></div>
+  <span class="lb-close">&times;</span>
+  <img id="lb-img" class="lb-img" src="" alt="" />
+</div>
+
+<style is:inline>
+.lb-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease;
+}
+.lb-overlay.show { opacity: 1; pointer-events: auto; }
+.lb-bg {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.lb-close {
+  position: absolute;
+  top: 20px;
+  right: 28px;
+  color: #fff;
+  font-size: 36px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 2;
+  opacity: .6;
+  transition: opacity .2s;
+  user-select: none;
+}
+.lb-close:hover { opacity: 1; }
+.lb-img {
+  position: relative;
+  z-index: 1;
+  max-width: 90vw;
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 4px 40px rgba(0,0,0,.5);
+  transform: scale(.9);
+  transition: transform .25s ease;
+}
+.lb-overlay.show .lb-img { transform: scale(1); }
+</style>
+
+<script is:inline>
+(function(){
+  var overlay = document.getElementById('lightbox');
+  var img = document.getElementById('lb-img');
+  var closeBtn = overlay.querySelector('.lb-close');
+
+  // Attach click handlers to article images
+  function attach() {
+    var images = document.querySelectorAll('article img:not(.no-lightbox)');
+    for (var i = 0; i < images.length; i++) {
+      if (!images[i]._lbBound) {
+        images[i]._lbBound = true;
+        images[i].style.cursor = 'zoom-in';
+        images[i].addEventListener('click', function(){
+          img.src = this.src;
+          img.alt = this.alt;
+          overlay.classList.add('show');
+          document.body.style.overflow = 'hidden';
+        });
+      }
+    }
+  }
+
+  function close() {
+    overlay.classList.remove('show');
+    document.body.style.overflow = '';
+  }
+
+  closeBtn.addEventListener('click', close);
+  overlay.querySelector('.lb-bg').addEventListener('click', close);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+
+  // Observe DOM changes for dynamically loaded content
+  attach();
+  var observer = new MutationObserver(attach);
+  observer.observe(document.body, { childList: true, subtree: true });
+})();
+</script>

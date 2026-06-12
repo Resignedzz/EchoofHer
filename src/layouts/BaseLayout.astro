@@ -1,5 +1,7 @@
 ---
 import NowPlaying from '../components/NowPlaying.astro';
+import ScrollTop from '../components/ScrollTop.astro';
+import ParticleTrail from '../components/ParticleTrail.astro';
 import '../styles/global.css';
 
 export interface Props {
@@ -26,6 +28,9 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
 
+    <!-- KaTeX math rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous" />
+
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta name="theme-color" content="#050507" />
@@ -38,6 +43,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     {ogImage && <meta property="og:image" content={ogImage} />}
   </head>
   <body class="min-h-screen flex flex-col">
+    <ParticleTrail />
     <slot />
 
     <!-- Cursor glow effect -->
@@ -92,6 +98,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     html.light header{background:rgba(245,245,250,.85)!important}
     html.light .cyber-card::before{background:linear-gradient(90deg,transparent,rgba(100,100,220,.2),transparent)}
     </style>
+    <ScrollTop />
   </body>
 
   <script is:inline>

@@ -1,0 +1,86 @@
+---
+// BlogStats — compute blog statistics at build time
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('blog', ({ data }) => !data.draft));
+const snippets = (await getCollection('snippets'));
+
+// Total word count (Chinese chars + English words)
+function countWords(text: string): number {
+  const chinese = (text.match(/[\u4e00-\u9fff]/g) || []).length;
+  const english = (text.replace(/[\u4e00-\u9fff]/g, ' ').match(/\b\w+\b/g) || []).length;
+  return chinese + english;
+}
+
+let totalWords = 0;
+for (const post of posts) {
+  totalWords += countWords(post.body || '');
+  if (post.data.description) totalWords += countWords(post.data.description);
+}
+for (const s of snippets) {
+  totalWords += countWords(s.body || '');
+}
+
+const avgWordsPerPost = posts.length > 0 ? Math.round(totalWords / posts.length) : 0;
+const tags = new Set<string>();
+for (const post of posts) {
+  for (const t of (post.data.tags || [])) tags.add(t);
+}
+const firstPost = posts.length > 0 ? posts[posts.length - 1].data.date : null;
+const blogAgeDays = firstPost ? Math.ceil((Date.now() - firstPost.valueOf()) / (1000 * 60 * 60 * 24)) : 0;
+const thisMonth = new Date().getMonth();
+const thisYear = new Date().getFullYear();
+const postsThisMonth = posts.filter(p => p.data.date.getMonth() === thisMonth && p.data.date.getFullYear() === thisYear).length;
+---
+
+<div class="blog-stats">
+  <div class="bs-grid">
+    <div class="bs-item">
+      <span class="bs-num">{posts.length}</span>
+      <span class="bs-label">文章</span>
+    </div>
+    <div class="bs-item">
+      <span class="bs-num">{totalWords.toLocaleString()}</span>
+      <span class="bs-label">总字数</span>
+    </div>
+    <div class="bs-item">
+      <span class="bs-num">{blogAgeDays}</span>
+      <span class="bs-label">博客天数</span>
+    </div>
+    <div class="bs-item">
+      <span class="bs-num">{tags.size}</span>
+      <span class="bs-label">标签</span>
+    </div>
+  </div>
+</div>
+
+<style is:inline>
+.blog-stats { margin: 1.5rem 0; }
+.bs-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.bs-item {
+  text-align: center;
+  padding: 10px 8px;
+  border-radius: 8px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  transition: border-color .3s;
+}
+.bs-item:hover { border-color: var(--accent-secondary); }
+.bs-num {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.2;
+}
+.bs-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: .3px;
+}
+</style>

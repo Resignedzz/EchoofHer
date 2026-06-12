@@ -1,0 +1,90 @@
+<!-- TechStack — linked technology badges for the sidebar -->
+<div class="ts-grid">
+  <a href="https://www.typescriptlang.org/docs/" target="_blank" rel="noopener" class="ts-badge" title="TypeScript">
+    <span class="ts-icon" style="background:#3178C6;color:#fff">TS</span>
+    <span class="ts-label">TS</span>
+  </a>
+  <a href="https://react.dev/" target="_blank" rel="noopener" class="ts-badge" title="React">
+    <span class="ts-icon" style="background:#087ea4;color:#fff">⚛</span>
+    <span class="ts-label">React</span>
+  </a>
+  <a href="https://vuejs.org/" target="_blank" rel="noopener" class="ts-badge" title="Vue">
+    <span class="ts-icon" style="background:#42b883;color:#fff">V</span>
+    <span class="ts-label">Vue</span>
+  </a>
+  <a href="https://docs.python.org/3/" target="_blank" rel="noopener" class="ts-badge" title="Python">
+    <span class="ts-icon" style="background:#3776AB;color:#fff">Py</span>
+    <span class="ts-label">Python</span>
+  </a>
+  <a href="https://nodejs.org/en/docs/" target="_blank" rel="noopener" class="ts-badge" title="Node.js">
+    <span class="ts-icon" style="background:#5FA04E;color:#fff">N</span>
+    <span class="ts-label">Node</span>
+  </a>
+  <a href="https://docs.astro.build/" target="_blank" rel="noopener" class="ts-badge" title="Astro">
+    <span class="ts-icon" style="background:#FF5D01;color:#fff">A</span>
+    <span class="ts-label">Astro</span>
+  </a>
+  <a href="https://platform.openai.com/docs/" target="_blank" rel="noopener" class="ts-badge" title="OpenAI">
+    <span class="ts-icon" style="background:#a855f7;color:#fff">🤖</span>
+    <span class="ts-label">AI</span>
+  </a>
+  <a href="https://js.langchain.com/docs/" target="_blank" rel="noopener" class="ts-badge" title="LangChain">
+    <span class="ts-icon" style="background:#1c3c3c;color:#3cc">🔗</span>
+    <span class="ts-label">LC</span>
+  </a>
+  <a href="https://git-scm.com/doc" target="_blank" rel="noopener" class="ts-badge" title="Git">
+    <span class="ts-icon" style="background:#F05032;color:#fff">G</span>
+    <span class="ts-label">Git</span>
+  </a>
+  <a href="https://docs.docker.com/" target="_blank" rel="noopener" class="ts-badge" title="Docker">
+    <span class="ts-icon" style="background:#2496ED;color:#fff">D</span>
+    <span class="ts-label">Docker</span>
+  </a>
+</div>
+
+<style is:inline>
+.ts-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+.ts-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  text-decoration: none;
+  padding: 6px 2px;
+  border-radius: 6px;
+  transition: all .25s;
+  position: relative;
+}
+.ts-badge:hover {
+  background: var(--accent-dim);
+  transform: translateY(-2px);
+}
+.ts-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  transition: transform .25s;
+}
+.ts-badge:hover .ts-icon {
+  transform: scale(1.1);
+}
+.ts-label {
+  font-size: 9px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-muted);
+  transition: color .25s;
+}
+.ts-badge:hover .ts-label {
+  color: var(--accent);
+}
+</style>

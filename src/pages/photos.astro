@@ -1,0 +1,144 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { getCollection } from 'astro:content';
+
+const posts = await getCollection('blog', ({ data }) => !data.draft);
+
+// Extract all <img> tags from post content
+const photos: { src: string; alt: string; title: string; slug: string }[] = [];
+for (const post of posts) {
+  const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]+alt=["']([^"']*)["']|!\[([^\]]*)\]\(([^)]+)\)/g;
+  let match;
+  const body = post.body || '';
+  // Markdown images: ![alt](url) — any URL in markdown image syntax IS an image
+  const mdImg = /!\[([^\]]*)\]\(([^)]+)\)/g;
+  while ((match = mdImg.exec(body)) !== null) {
+    photos.push({ src: match[2], alt: match[1] || '图片', title: post.data.title, slug: post.id });
+  }
+  // HTML images
+  const htmlImg = /<img[^>]+src=["']([^"']+)["']/gi;
+  while ((match = htmlImg.exec(body)) !== null) {
+    // avoid duplicating markdown ones
+    if (!photos.find(p => p.src === match[1])) {
+      const altMatch = /alt=["']([^"']*)["']/i.exec(body.substring(match.index, match.index + 200));
+      photos.push({ src: match[1], alt: altMatch?.[1] || '图片', title: post.data.title, slug: post.id });
+    }
+  }
+}
+---
+
+<BaseLayout title="图库 — resigned's blog" description="所有文章中的图片">
+  <Header />
+
+  <main class="flex-1 w-full max-w-5xl mx-auto px-4 py-12 sm:px-6">
+    <h1 class="font-mono text-3xl font-bold mb-2 flex items-center gap-2">
+      <span class="text-[var(--accent)]">📷</span> 图库
+    </h1>
+    <p class="text-[var(--text-muted)] mb-8">共 {photos.length} 张图片</p>
+
+    {photos.length === 0 ? (
+      <div class="cyber-card p-8 text-center">
+        <p class="text-[var(--text-muted)] font-mono text-sm">// 还没有图片</p>
+        <p class="text-[var(--text-muted)] text-xs mt-1">在你文章中添加图片后，这里会自动展示</p>
+      </div>
+    ) : (
+      <div class="masonry" id="masonry">
+        {photos.map((photo, i) => (
+          <a href={`/blog/${photo.slug}`} class="masonry-item group">
+            <div class="masonry-img-wrap">
+              <img src={photo.src} alt={photo.alt} loading="lazy" class="masonry-img" />
+              <div class="masonry-overlay">
+                <span class="masonry-title">{photo.title}</span>
+                {photo.alt !== '图片' && <span class="masonry-alt">{photo.alt}</span>}
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    )}
+  </main>
+
+  <Footer />
+</BaseLayout>
+
+<style is:inline>
+.masonry {
+  columns: 3;
+  column-gap: 12px;
+}
+@media (max-width: 768px) { .masonry { columns: 2; } }
+@media (max-width: 480px) { .masonry { columns: 1; } }
+.masonry-item {
+  break-inside: avoid;
+  margin-bottom: 12px;
+  display: block;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  transition: transform .25s, border-color .25s;
+}
+.masonry-item:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-secondary);
+}
+.masonry-img-wrap {
+  position: relative;
+  line-height: 0;
+}
+.masonry-img {
+  width: 100%;
+  display: block;
+  transition: transform .4s;
+}
+.masonry-item:hover .masonry-img {
+  transform: scale(1.04);
+}
+.masonry-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,.7) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity .3s;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 12px;
+}
+.masonry-item:hover .masonry-overlay { opacity: 1; }
+.masonry-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+}
+.masonry-alt {
+  font-size: 10px;
+  color: rgba(255,255,255,.6);
+  margin-top: 2px;
+}
+</style>
+
+<!-- Apply masonry layout after images load to prevent broken columns -->
+<script is:inline>
+(function(){
+  var m = document.getElementById('masonry');
+  if (!m) return;
+  // Reflow masonry on window resize
+  var timer;
+  window.addEventListener('resize', function(){
+    clearTimeout(timer);
+    timer = setTimeout(function(){
+      // Re-trigger column layout
+      var items = m.children;
+      for (var i = 0; i < items.length; i++) {
+        items[i].style.display = 'none';
+        items[i].offsetHeight; // force reflow
+        items[i].style.display = '';
+      }
+    }, 200);
+  });
+})();
+</script>

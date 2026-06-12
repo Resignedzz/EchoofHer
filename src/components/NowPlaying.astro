@@ -5,16 +5,18 @@
 // 静态 serve 时 fallback 歌曲可显示但无法播放
 ---
 <style is:inline>
-  #np-root{position:fixed;bottom:16px;right:16px;z-index:1000;font-family:var(--font-mono,monospace)}
+  #np-root{position:fixed;top:16px;right:16px;z-index:1000;font-family:var(--font-mono,monospace)}
 
   /* ── Mini Vinyl ── */
   .np-mini{position:relative;width:40px;height:40px;border-radius:50%;cursor:pointer;
-    background:radial-gradient(circle,#1a1a2e 38%,#111 39%,#111 61%,#0a0a0a 62%);
-    box-shadow:0 0 0 1.5px rgba(255,255,255,.06),0 2px 12px rgba(0,0,0,.5);
+    background:var(--glass-bg,rgba(255,255,255,.04));
+    backdrop-filter:blur(var(--glass-blur,12px));-webkit-backdrop-filter:blur(var(--glass-blur,12px));
+    box-shadow:0 0 0 1px var(--glass-border,rgba(255,255,255,.08)),
+      inset 0 0 12px rgba(120,140,255,.03),0 2px 16px rgba(0,0,0,.3);
     transition:transform .25s;overflow:hidden}
   .np-mini:hover{transform:scale(1.12)}
   .np-grooves{position:absolute;inset:0;border-radius:50%;pointer-events:none;
-    background:repeating-radial-gradient(circle,transparent,transparent 1.5px,rgba(255,255,255,.012) 1.5px,rgba(255,255,255,.012) 2.5px)}
+    background:repeating-radial-gradient(circle,transparent,transparent 1.5px,rgba(255,255,255,.02) 1.5px,rgba(255,255,255,.02) 2.5px)}
   .np-m-cover{position:absolute;top:50%;left:50%;width:40%;height:40%;border-radius:50%;
     transform:translate(-50%,-50%);object-fit:cover;border:1px solid rgba(255,255,255,.08);
     opacity:0;transition:opacity .3s}
@@ -29,20 +31,20 @@
   /* ── Pulse ── */
   .np-pulse{position:absolute;top:-2px;right:-2px;width:10px;height:10px;
     pointer-events:none;opacity:0;transition:opacity .3s}
-  .np-pd{position:absolute;inset:0;border-radius:50%;background:#22c55e;box-shadow:0 0 4px #22c55e}
-  .np-pr{position:absolute;inset:-3px;border-radius:50%;border:1.5px solid #22c55e;opacity:0}
+  .np-pd{position:absolute;inset:0;border-radius:50%;background:#818cf8;box-shadow:0 0 6px rgba(129,140,248,.6)}
+  .np-pr{position:absolute;inset:-3px;border-radius:50%;border:1.5px solid rgba(129,140,248,.5);opacity:0}
   .np-spin .np-pulse{opacity:1}
   .np-spin .np-pr{animation:np-ping 1.5s ease-out infinite}
   @keyframes np-ping{0%{transform:scale(.6);opacity:.8}100%{transform:scale(1.8);opacity:0}}
 
   /* ── Glow ── */
-  .np-glow{position:absolute;inset:-4px;border-radius:50%;pointer-events:none;
+  .np-glow{position:absolute;inset:-6px;border-radius:50%;pointer-events:none;
     opacity:0;transition:opacity .4s;
-    background:radial-gradient(circle,rgba(120,100,255,.15),transparent 70%)}
+    background:radial-gradient(circle,rgba(120,140,255,.12),transparent 70%)}
   .np-spin .np-glow{opacity:1}
 
   /* ── Tooltip ── */
-  .np-tip{position:absolute;bottom:calc(100% + 10px);right:0;padding:5px 10px;white-space:nowrap;
+  .np-tip{position:absolute;top:calc(100% + 10px);right:0;padding:5px 10px;white-space:nowrap;
     background:var(--bg-card,rgba(15,15,20,.92));border:1px solid var(--border,rgba(255,255,255,.06));
     border-radius:6px;backdrop-filter:blur(12px);opacity:0;transform:translateY(4px);
     transition:all .2s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.3)}
@@ -51,10 +53,10 @@
   .np-tip small{display:block;font-size:9px;line-height:1.2;color:var(--text-muted,#888);opacity:.5;margin-top:2px}
 
   /* ── Panel ── */
-  .np-panel{position:absolute;bottom:52px;right:0;width:310px;max-height:420px;display:flex;flex-direction:column;
+  .np-panel{position:absolute;top:52px;right:0;width:310px;max-height:420px;display:flex;flex-direction:column;
     background:var(--bg-card,rgba(15,15,20,.85));border:1px solid var(--border,rgba(255,255,255,.06));
     backdrop-filter:blur(20px);border-radius:12px;overflow:hidden;
-    box-shadow:0 8px 32px rgba(0,0,0,.4);transform-origin:bottom right;
+    box-shadow:0 8px 32px rgba(0,0,0,.4);transform-origin:top right;
     opacity:0;transform:scale(.92) translateY(8px);pointer-events:none;transition:all .3s}
   .np-panel.open{opacity:1;transform:scale(1) translateY(0);pointer-events:auto}
 
@@ -172,7 +174,7 @@
     <!-- Controls -->
     <div class="np-ctrl">
       <button id="np-b-prev" class="np-btn" aria-label="上一曲"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
-      <div style="flex:1"></div>
+      <button id="np-b-play" class="np-btn" aria-label="播放/暂停"><svg id="np-ico-pause" viewBox="0 0 24 24" style="display:none"><path d="M6 4h4v16H6zm8 0h4v16h-4z"/></svg><svg id="np-ico-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
       <button id="np-b-next" class="np-btn" aria-label="下一曲"><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zm-10 0l8.5 6L6 18z"/></svg></button>
     </div>
   </div>
@@ -207,7 +209,8 @@
   var tipName=$('np-tip-name'), tipArtist=$('np-tip-artist');
   var listEl=$('np-list'), lrcsEl=$('np-lrcs');
   var tList=$('np-t-list'), tLrc=$('np-t-lrc');
-  var bPrev=$('np-b-prev'), bNext=$('np-b-next');
+  var bPrev=$('np-b-prev'), bNext=$('np-b-next'), bPlay=$('np-b-play');
+  var icoPlay=$('np-ico-play'), icoPause=$('np-ico-pause');
   var audio=$('np-audio');
   var fillEl=$('np-fill'), curT=$('np-cur-t'), durT=$('np-dur-t'), trackEl=$('np-track');
 
@@ -215,7 +218,7 @@
 
   // State
   var tracks=[], cur=-1, open=false, playing=false;
-  var closeTimer=null, lrcLines=[];
+  var closeTimer=null, lrcLines=[], lrcTabActive=false, lrcRaf=0;
 
   function fmt(ms){
     var s=Math.floor(ms/1000),m=Math.floor(s/60);
@@ -246,9 +249,11 @@
     if(on){
       mini.classList.add('np-spin');
       npCover.classList.add('spin');
+      icoPause.style.display=''; icoPlay.style.display='none';
     } else {
       mini.classList.remove('np-spin');
       npCover.classList.remove('spin');
+      icoPause.style.display='none'; icoPlay.style.display='';
     }
   }
 
@@ -372,7 +377,7 @@
   }
 
   function syncLyrics(){
-    if(!lrcLines.length||cur<0||!playing||!audio.duration) return;
+    if(!lrcTabActive||!lrcLines.length||cur<0||!audio.duration){lrcRaf=0;return}
     var elapsed=audio.currentTime;
     var ps=lrcsEl.querySelectorAll('.np-lrc');
     var curIdx=-1;
@@ -386,10 +391,9 @@
       else if(d===1) ps[j].classList.add('near');
     }
     if(curIdx>=0&&ps[curIdx]){
-      var container=lrcsEl, scrollTarget=ps[curIdx].offsetTop-container.clientHeight/2+container.clientHeight/2;
-      container.scrollTop=scrollTarget;
+      lrcsEl.scrollTop=ps[curIdx].offsetTop-lrcsEl.clientHeight/2+ps[curIdx].clientHeight/2;
     }
-    requestAnimationFrame(syncLyrics);
+    lrcRaf=requestAnimationFrame(syncLyrics);
   }
 
   function switchTab(tab){
@@ -397,7 +401,9 @@
     tLrc.classList.toggle('on',tab==='lrc');
     listEl.style.display=tab==='list'?'':'none';
     lrcsEl.style.display=tab==='lrc'?'':'none';
-    if(tab==='lrc'&&playing) syncLyrics();
+    lrcTabActive=(tab==='lrc');
+    if(tab==='lrc'&&!lrcRaf) lrcRaf=requestAnimationFrame(syncLyrics);
+    if(tab==='list'&&lrcRaf){cancelAnimationFrame(lrcRaf);lrcRaf=0}
   }
 
   // ── Load ──
@@ -448,28 +454,29 @@
       if(tracks.length){ setCover(tracks[0].cover); tipName.textContent=tracks[0].name; tipArtist.textContent=tracks[0].artist; }
     }catch(e){
       console.warn('[NP] fallback:',e);
-      // Fallback: classic tracks (cover URLs verified via API)
+      // Fallback: classic tracks (cover uses inline SVG, never 404)
+      var DEF_COVER = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" rx="50" fill="#1a1a2e"/><circle cx="50" cy="50" r="24" fill="none" stroke="rgba(180,160,255,.3)" stroke-width="2"/><circle cx="50" cy="50" r="10" fill="rgba(180,160,255,.15)"/><circle cx="55" cy="55" r="4" fill="rgba(180,160,255,.2)"/></svg>');
       tracks=[
-        {id:186016,name:'晴天',artist:'周杰伦',cover:'https://p2.music.126.net/ZGffiDQZrGj5s_hnR1CNbg==/109951165566379710.jpg?param=100y100',duration:269000,lyrics:[]},
-        {id:1901371647,name:'孤勇者',artist:'陈奕迅',cover:'https://p2.music.126.net/HXfXIIBCk5w96MiY1Wdsqw==/109951171836610847.jpg?param=100y100',duration:262000,lyrics:[]},
-        {id:1397345903,name:'悬溺',artist:'葛东琪',cover:'https://p2.music.126.net/wSMfGvFzOAYRU_yVIfquAA==/2946691248081599.jpg?param=100y100',duration:217000,lyrics:[]},
-        {id:1868553,name:'七里香',artist:'周杰伦',cover:'https://p2.music.126.net/0mEJDkWMimxcBq1Gh0xPCg==/109951163690257207.jpg?param=100y100',duration:299000,lyrics:[]},
-        {id:167876,name:'夜曲',artist:'周杰伦',cover:'https://p2.music.126.net/8D8zWQ0NjfOrjH1kPNJ6RA==/109951163139557231.jpg?param=100y100',duration:226000,lyrics:[]},
-        {id:185809,name:'稻香',artist:'周杰伦',cover:'https://p2.music.126.net/dmM5rqv5b7xC8KGUjoKnQg==/109951163042544515.jpg?param=100y100',duration:223000,lyrics:[]},
-        {id:441491828,name:'起风了',artist:'买辣椒也用券',cover:'https://p2.music.126.net/cgPKNRKJhGQqxLDy5R5Biw==/109951163945859964.jpg?param=100y100',duration:325000,lyrics:[]},
-        {id:1325839776,name:'错位时空',artist:'艾辰',cover:'https://p2.music.126.net/Y7Z6U2nBDqF8PBRcGKNSgg==/109951165321810134.jpg?param=100y100',duration:213000,lyrics:[]},
-        {id:1407551413,name:'花海',artist:'周杰伦',cover:'https://p2.music.126.net/e-MWdMTT1WBKnMQD7Gxj9A==/109951164352957467.jpg?param=100y100',duration:260000,lyrics:[]},
-        {id:436514312,name:'告白气球',artist:'周杰伦',cover:'https://p2.music.126.net/6N7tsY5qxOrKPnCPiGx3XQ==/109951163272552080.jpg?param=100y100',duration:215000,lyrics:[]},
-        {id:1484174461,name:'漠河舞厅',artist:'柳爽',cover:'https://p2.music.126.net/K68LQEoxnBP-1QBNqyJQgw==/109951165307896621.jpg?param=100y100',duration:274000,lyrics:[]},
-        {id:1491889418,name:'踏山河',artist:'是七叔呢',cover:'https://p2.music.126.net/FZWn3yVCknEHjkqSEIKGqg==/109951165512774268.jpg?param=100y100',duration:208000,lyrics:[]},
-        {id:1840402115,name:'白月光与朱砂痣',artist:'大籽',cover:'https://p2.music.126.net/6qyzGcF7sBXgHBlaOGWzdA==/109951165279756997.jpg?param=100y100',duration:243000,lyrics:[]},
-        {id:1813224304,name:'云与海',artist:'阿YueYue',cover:'https://p2.music.126.net/Hw4xJ34u1THGtsJ3r2OoNw==/109951165232835284.jpg?param=100y100',duration:226000,lyrics:[]},
-        {id:1397058800,name:'连名带姓',artist:'周杰伦',cover:'https://p2.music.126.net/C1GW97srGSkAzKvlBK15eg==/109951163395205193.jpg?param=100y100',duration:258000,lyrics:[]},
-        {id:1463318496,name:'海底',artist:'一支榴莲',cover:'https://p2.music.126.net/DLcKjVi1mFqfJcTp_CeW7Q==/109951165182808627.jpg?param=100y100',duration:267000,lyrics:[]},
-        {id:1842025914,name:'可可托海的牧羊人',artist:'王琪',cover:'https://p2.music.126.net/NXZpKvHAcP-Vz_NHnDHcjQ==/109951165244213504.jpg?param=100y100',duration:325000,lyrics:[]},
-        {id:1412570242,name:'可能',artist:'程响',cover:'https://p2.music.126.net/l4qod9FUMknfqCLfAFOzWw==/109951165936655416.jpg?param=100y100',duration:296000,lyrics:[]},
-        {id:1806493589,name:'半生雪',artist:'是七叔呢',cover:'https://p2.music.126.net/eCxPsYmTMXvAO5yG2OX_3g==/109951165757234749.jpg?param=100y100',duration:209000,lyrics:[]},
-        {id:1842023876,name:'不如见一面',artist:'海来阿木',cover:'https://p2.music.126.net/n8jGSms3ym3u0bqLONoAAQ==/109951165268874439.jpg?param=100y100',duration:282000,lyrics:[]},
+        {id:186016,name:'晴天',artist:'周杰伦',cover:DEF_COVER,duration:269000,lyrics:[]},
+        {id:1901371647,name:'孤勇者',artist:'陈奕迅',cover:DEF_COVER,duration:262000,lyrics:[]},
+        {id:1397345903,name:'悬溺',artist:'葛东琪',cover:DEF_COVER,duration:217000,lyrics:[]},
+        {id:1868553,name:'七里香',artist:'周杰伦',cover:DEF_COVER,duration:299000,lyrics:[]},
+        {id:167876,name:'夜曲',artist:'周杰伦',cover:DEF_COVER,duration:226000,lyrics:[]},
+        {id:185809,name:'稻香',artist:'周杰伦',cover:DEF_COVER,duration:223000,lyrics:[]},
+        {id:441491828,name:'起风了',artist:'买辣椒也用券',cover:DEF_COVER,duration:325000,lyrics:[]},
+        {id:1325839776,name:'错位时空',artist:'艾辰',cover:DEF_COVER,duration:213000,lyrics:[]},
+        {id:1407551413,name:'花海',artist:'周杰伦',cover:DEF_COVER,duration:260000,lyrics:[]},
+        {id:436514312,name:'告白气球',artist:'周杰伦',cover:DEF_COVER,duration:215000,lyrics:[]},
+        {id:1484174461,name:'漠河舞厅',artist:'柳爽',cover:DEF_COVER,duration:274000,lyrics:[]},
+        {id:1491889418,name:'踏山河',artist:'是七叔呢',cover:DEF_COVER,duration:208000,lyrics:[]},
+        {id:1840402115,name:'白月光与朱砂痣',artist:'大籽',cover:DEF_COVER,duration:243000,lyrics:[]},
+        {id:1813224304,name:'云与海',artist:'阿YueYue',cover:DEF_COVER,duration:226000,lyrics:[]},
+        {id:1397058800,name:'连名带姓',artist:'周杰伦',cover:DEF_COVER,duration:258000,lyrics:[]},
+        {id:1463318496,name:'海底',artist:'一支榴莲',cover:DEF_COVER,duration:267000,lyrics:[]},
+        {id:1842025914,name:'可可托海的牧羊人',artist:'王琪',cover:DEF_COVER,duration:325000,lyrics:[]},
+        {id:1412570242,name:'可能',artist:'程响',cover:DEF_COVER,duration:296000,lyrics:[]},
+        {id:1806493589,name:'半生雪',artist:'是七叔呢',cover:DEF_COVER,duration:209000,lyrics:[]},
+        {id:1842023876,name:'不如见一面',artist:'海来阿木',cover:DEF_COVER,duration:282000,lyrics:[]},
       ];
       hdTitle.textContent='我的歌单';
       setCover(tracks[0].cover); tipName.textContent=tracks[0].name; tipArtist.textContent=tracks[0].artist;
@@ -509,6 +516,11 @@
 
   bPrev.addEventListener('click',function(e){ e.stopPropagation(); prev(); });
   bNext.addEventListener('click',function(e){ e.stopPropagation(); next(); });
+  bPlay.addEventListener('click',function(e){
+    e.stopPropagation();
+    if(cur<0){ if(tracks.length) play(0); return; }
+    if(audio.paused){ audio.play(); } else { audio.pause(); }
+  });
   tList.addEventListener('click',function(e){ e.stopPropagation(); switchTab('list'); });
   tLrc.addEventListener('click',function(e){ e.stopPropagation(); switchTab('lrc'); });
 

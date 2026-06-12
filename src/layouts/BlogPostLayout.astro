@@ -3,6 +3,9 @@ import BaseLayout from './BaseLayout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import Giscus from '../components/Giscus.astro';
+import GuestComments from '../components/GuestComments.astro';
+import ImageLightbox from '../components/ImageLightbox.astro';
+import MermaidRenderer from '../components/MermaidRenderer.astro';
 import AISummary from '../components/AISummary.astro';
 
 export interface Props {
@@ -25,8 +28,6 @@ const formatDate = (d: Date) => {
 ---
 
 <BaseLayout title={`${title} — resigned's blog`} description={description}>
-  <!-- Reading progress bar -->
-  <div id="reading-progress"></div>
 
   <Header />
 
@@ -95,7 +96,10 @@ const formatDate = (d: Date) => {
           <h2 class="font-mono text-lg font-bold mb-6 flex items-center gap-2">
             <span class="text-[var(--accent-secondary)]">//</span> Comments
           </h2>
-          <Giscus />
+          <GuestComments />
+          <div class="mt-8">
+            <Giscus />
+          </div>
         </div>
       </div>
 
@@ -112,19 +116,12 @@ const formatDate = (d: Date) => {
   </main>
 
   <Footer />
+  <ImageLightbox />
+  <MermaidRenderer />
 </BaseLayout>
 
 <script>
-  // Reading progress bar
-  const progressBar = document.getElementById('reading-progress');
-  const updateProgress = () => {
-    const scrollTop = window.scrollY;
-    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-    const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
-    if (progressBar) progressBar.style.width = progress + '%';
-  };
-  window.addEventListener('scroll', updateProgress, { passive: true });
-  updateProgress();
+  let h = '' + new Date().getHours(); /* unused placeholder */
 
   // Reading time estimate
   const article = document.querySelector('article');

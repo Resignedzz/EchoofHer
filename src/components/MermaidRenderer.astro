@@ -1,0 +1,57 @@
+<!-- MermaidRenderer — client-side rendering of mermaid code blocks -->
+<script is:inline>
+(function(){
+  var blocks = document.querySelectorAll('code.language-mermaid, pre[data-language="mermaid"] code');
+  if (!blocks.length) return;
+
+  var preEls = [];
+  var sources = [];
+  for (var i = 0; i < blocks.length; i++) {
+    var pre = blocks[i].closest('pre');
+    if (pre) { preEls.push(pre); sources.push(blocks[i].textContent || ''); }
+  }
+  if (!sources.length) return;
+
+  var cdnIdx = 0;
+  var cdns = [
+    'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js',
+    'https://unpkg.com/mermaid@11/dist/mermaid.min.js'
+  ];
+
+  function tryLoad() {
+    if (cdnIdx >= cdns.length) return;
+    var s = document.createElement('script');
+    s.src = cdns[cdnIdx];
+    s.onerror = function(){ cdnIdx++; tryLoad(); };
+    s.onload = function(){
+      try {
+        // @ts-ignore
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
+          themeVariables: { fontFamily: 'JetBrains Mono, monospace' }
+        });
+      } catch(e){}
+      for (var j = 0; j < sources.length; j++) {
+        (function(idx){
+          try {
+            // @ts-ignore
+            mermaid.render('mermaid-diag-' + idx, sources[idx]).then(function(r){
+              var w = document.createElement('div');
+              w.className = 'mermaid-wrapper';
+              w.innerHTML = r.svg;
+              w.style.cssText = 'background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:8px;padding:1.5rem;overflow-x:auto;text-align:center;margin:1rem 0;';
+              preEls[idx].replaceWith(w);
+            }).catch(function(e){ console.warn('Mermaid:', e); });
+          } catch(e){}
+        })(j);
+      }
+    };
+    document.head.appendChild(s);
+  }
+  tryLoad();
+})();
+</script>
+<style is:inline>
+.mermaid-wrapper svg { max-width: 100%; height: auto; }
+</style>
