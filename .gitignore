@@ -3,3 +3,9 @@ dist/
 .astro/
 .env
 .env.*
+
+# 构建时由 pagefind 生成的搜索索引
+public/pagefind/
+
+# 编辑器本地配置
+.vscode/
