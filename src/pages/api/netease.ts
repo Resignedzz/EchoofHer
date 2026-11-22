@@ -41,9 +41,19 @@ export async function GET({ request }) {
     case 'playlist':
       apiPath = `/api/v3/playlist/detail?id=${id}&n=100000`;
       break;
-    case 'song-detail':
-      apiPath = `/api/song/detail?ids=${ids}`;
+    case 'song-detail': {
+      // The v3 endpoint (c=[{"id":...}]) returns ar/al/dt, which is what the
+      // player reads. The legacy /api/song/detail returns artists/album/duration.
+      let list: Array<number | string> = [];
+      try {
+        list = JSON.parse(ids || '[]');
+      } catch {
+        list = [];
+      }
+      const c = encodeURIComponent(JSON.stringify(list.map((n) => ({ id: Number(n) }))));
+      apiPath = `/api/v3/song/detail?c=${c}`;
       break;
+    }
     case 'lyric':
       apiPath = `/api/song/lyric?id=${id}&lv=1`;
       break;
