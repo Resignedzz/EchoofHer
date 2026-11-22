@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "build": "astro build && npx pagefind --site dist && cp -r dist/pagefind public/pagefind",
+    "build": "astro build && npx pagefind --site dist && node -e \"require('node:fs').cpSync('dist/pagefind','public/pagefind',{recursive:true})\"",
     "summary": "node scripts/generate-summaries.mjs",
     "preview": "astro preview"
   },
@@ -22,6 +22,7 @@
     "tailwindcss": "^3.4.0"
   },
   "devDependencies": {
-    "@pagefind/default-ui": "^1.5.2"
+    "@pagefind/default-ui": "^1.5.2",
+    "vitest": "^5.1.1"
   }
 }
