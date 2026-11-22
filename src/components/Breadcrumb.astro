@@ -1,0 +1,23 @@
+---
+// Props: 传入面包屑条目数组，每条 { label, href? }
+// href 为空的条目渲染为当前页高亮（最后一项）
+export interface Crumb {
+  label: string;
+  href?: string;
+}
+export interface Props {
+  items: Crumb[];
+}
+const { items } = Astro.props;
+---
+
+<nav aria-label="面包屑导航" class="font-mono text-xs text-[var(--text-muted)] mb-6 flex flex-wrap items-center gap-1.5">
+  {items.map((item, i) => (
+    <>
+      {i > 0 && <span class="opacity-30 select-none">/</span>}
+      {item.href
+        ? <a href={item.href} class="hover:text-[var(--accent)] transition-colors">{item.label}</a>
+        : <span class="text-[var(--text)] opacity-80">{item.label}</span>}
+    </>
+  ))}
+</nav>

@@ -4,137 +4,6 @@
 // 需要 astro dev 或 Cloudflare Pages 部署才能播放音频
 // 静态 serve 时 fallback 歌曲可显示但无法播放
 ---
-<style is:inline>
-  #np-root{position:fixed;top:16px;right:16px;z-index:1000;font-family:var(--font-mono,monospace)}
-
-  /* ── Mini Vinyl ── */
-  .np-mini{position:relative;width:40px;height:40px;border-radius:50%;cursor:pointer;
-    background:var(--glass-bg,rgba(255,255,255,.04));
-    backdrop-filter:blur(var(--glass-blur,12px));-webkit-backdrop-filter:blur(var(--glass-blur,12px));
-    box-shadow:0 0 0 1px var(--glass-border,rgba(255,255,255,.08)),
-      inset 0 0 12px rgba(120,140,255,.03),0 2px 16px rgba(0,0,0,.3);
-    transition:transform .25s;overflow:hidden}
-  .np-mini:hover{transform:scale(1.12)}
-  .np-grooves{position:absolute;inset:0;border-radius:50%;pointer-events:none;
-    background:repeating-radial-gradient(circle,transparent,transparent 1.5px,rgba(255,255,255,.02) 1.5px,rgba(255,255,255,.02) 2.5px)}
-  .np-m-cover{position:absolute;top:50%;left:50%;width:40%;height:40%;border-radius:50%;
-    transform:translate(-50%,-50%);object-fit:cover;border:1px solid rgba(255,255,255,.08);
-    opacity:0;transition:opacity .3s}
-  .np-m-cover.on{opacity:1}
-  .np-m-icon{position:absolute;top:50%;left:50%;width:12px;height:12px;
-    transform:translate(-50%,-50%);fill:var(--accent,#e0e0f0);opacity:.5;transition:opacity .3s}
-  .np-m-icon.off{opacity:0}
-  @keyframes np-spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
-  .np-spin .np-m-cover{animation:np-spin 3s linear infinite}
-  .np-spin .np-grooves{animation:np-spin 8s linear infinite}
-
-  /* ── Pulse ── */
-  .np-pulse{position:absolute;top:-2px;right:-2px;width:10px;height:10px;
-    pointer-events:none;opacity:0;transition:opacity .3s}
-  .np-pd{position:absolute;inset:0;border-radius:50%;background:#818cf8;box-shadow:0 0 6px rgba(129,140,248,.6)}
-  .np-pr{position:absolute;inset:-3px;border-radius:50%;border:1.5px solid rgba(129,140,248,.5);opacity:0}
-  .np-spin .np-pulse{opacity:1}
-  .np-spin .np-pr{animation:np-ping 1.5s ease-out infinite}
-  @keyframes np-ping{0%{transform:scale(.6);opacity:.8}100%{transform:scale(1.8);opacity:0}}
-
-  /* ── Glow ── */
-  .np-glow{position:absolute;inset:-6px;border-radius:50%;pointer-events:none;
-    opacity:0;transition:opacity .4s;
-    background:radial-gradient(circle,rgba(120,140,255,.12),transparent 70%)}
-  .np-spin .np-glow{opacity:1}
-
-  /* ── Tooltip ── */
-  .np-tip{position:absolute;top:calc(100% + 10px);right:0;padding:5px 10px;white-space:nowrap;
-    background:var(--bg-card,rgba(15,15,20,.92));border:1px solid var(--border,rgba(255,255,255,.06));
-    border-radius:6px;backdrop-filter:blur(12px);opacity:0;transform:translateY(4px);
-    transition:all .2s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.3)}
-  .np-mini:hover .np-tip{opacity:1;transform:translateY(0)}
-  .np-tip b{font-size:11px;line-height:1.2;color:var(--text,#e0e0f0);font-weight:400}
-  .np-tip small{display:block;font-size:9px;line-height:1.2;color:var(--text-muted,#888);opacity:.5;margin-top:2px}
-
-  /* ── Panel ── */
-  .np-panel{position:absolute;top:52px;right:0;width:310px;max-height:420px;display:flex;flex-direction:column;
-    background:var(--bg-card,rgba(15,15,20,.85));border:1px solid var(--border,rgba(255,255,255,.06));
-    backdrop-filter:blur(20px);border-radius:12px;overflow:hidden;
-    box-shadow:0 8px 32px rgba(0,0,0,.4);transform-origin:top right;
-    opacity:0;transform:scale(.92) translateY(8px);pointer-events:none;transition:all .3s}
-  .np-panel.open{opacity:1;transform:scale(1) translateY(0);pointer-events:auto}
-
-  /* ── Header ── */
-  .np-hd{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border)}
-  .np-dot{width:6px;height:6px;border-radius:50%;background:#555;flex-shrink:0;transition:background .3s}
-  .np-dot.live{background:#22c55e;box-shadow:0 0 6px #22c55e}
-  .np-hd-title{flex:1;font-size:10px;color:var(--text-muted,#888);opacity:.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .np-hd-count{font-size:9px;color:var(--text-muted,#888);opacity:.25;flex-shrink:0}
-  .np-hd-link{font-size:11px;color:var(--text-muted,#888);opacity:.3;text-decoration:none;
-    transition:opacity .2s;display:flex;align-items:center}
-  .np-hd-link:hover{opacity:.7}
-
-  /* ── Tabs ── */
-  .np-tabs{display:flex;border-bottom:1px solid var(--border)}
-  .np-tab{flex:1;padding:7px 0;text-align:center;cursor:pointer;font-size:10px;line-height:1;
-    color:var(--text-muted,#888);border-bottom:2px solid transparent;transition:all .2s}
-  .np-tab:hover{color:var(--text,#e0e0f0)}
-  .np-tab.on{color:var(--accent,#e0e0f0);border-bottom-color:var(--accent,#e0e0f0)}
-
-  /* ── Now-playing bar ── */
-  .np-np{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);
-    background:rgba(255,255,255,.015)}
-  .np-np-cover{width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;
-    border:1px solid rgba(255,255,255,.06);transition:transform .2s;cursor:pointer}
-  .np-np-cover:hover{transform:scale(1.06)}
-  .np-np-cover.spin{animation:np-spin 3s linear infinite}
-  .np-np-info{flex:1;min-width:0}
-  .np-np-name{font-size:11px;line-height:1.3;color:var(--text,#e0e0f0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .np-np-artist{font-size:9px;line-height:1.2;color:var(--text-muted,#888);opacity:.5;margin-top:1px}
-  .np-np-idx{font-size:9px;color:var(--text-muted,#888);opacity:.2;flex-shrink:0}
-
-  /* ── Progress bar ── */
-  .np-bar{padding:0 12px;height:20px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
-  .np-time{font-size:9px;color:var(--text-muted,#888);opacity:.3;min-width:32px;text-align:center}
-  .np-track{flex:1;height:3px;background:rgba(255,255,255,.06);border-radius:2px;cursor:pointer;position:relative;overflow:hidden}
-  .np-fill{height:100%;background:var(--accent-secondary,#8b8ba8);border-radius:2px;width:0;transition:width .15s linear}
-
-  /* ── Track list ── */
-  .np-list{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
-  .np-item{display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;
-    transition:background .15s;border-bottom:1px solid var(--border)}
-  .np-item:last-child{border-bottom:none}
-  .np-item:hover{background:rgba(255,255,255,.025)}
-  .np-item.cur .np-item-name{color:var(--accent-secondary,#8b8ba8)}
-  .np-item-cover{width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;
-    border:1px solid rgba(255,255,255,.04)}
-  .np-item-info{flex:1;min-width:0}
-  .np-item-name{font-size:11px;line-height:1.3;color:var(--text,#e0e0f0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .np-item-artist{font-size:9px;line-height:1.2;color:var(--text-muted,#888);opacity:.4;margin-top:1px}
-  .np-item-dur{font-size:9px;color:var(--text-muted,#888);opacity:.18;flex-shrink:0}
-
-  /* ── Lyrics ── */
-  .np-lrcs{flex:1;overflow-y:auto;padding:16px;scroll-behavior:smooth;
-    scrollbar-width:thin;scrollbar-color:var(--border) transparent}
-  .np-lrc{font-size:11px;line-height:1.8;color:var(--text-muted,#888);opacity:.2;text-align:center;padding:2px 0;
-    transition:all .3s}
-  .np-lrc.cur{color:var(--accent,#e0e0f0);opacity:1;font-size:12px}
-  .np-lrc.near{opacity:.5}
-
-  /* ── Controls ── */
-  .np-ctrl{display:flex;align-items:center;gap:4px;padding:8px 16px;border-top:1px solid var(--border)}
-  .np-btn{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-    color:var(--text-muted,#888);cursor:pointer;background:none;border:none;transition:all .15s}
-  .np-btn:hover{color:var(--accent,#e0e0f0);background:rgba(255,255,255,.04)}
-  .np-btn:active{transform:scale(.9)}
-  .np-btn svg{width:14px;height:14px;fill:currentColor}
-
-  /* ── Empty ── */
-  .np-empty{font-size:10px;color:var(--text-muted,#888);opacity:.25;text-align:center;padding:24px 0}
-
-  @media(prefers-reduced-motion:reduce){
-    .np-spin *,.np-np-cover.spin{animation:none!important}
-    .np-spin .np-pr{animation:none!important}
-    #np-root *{transition-duration:0s!important}
-  }
-</style>
-
 <div id="np-root">
   <!-- Panel -->
   <div id="np-panel" class="np-panel">
@@ -186,12 +55,13 @@
     <img id="np-m-cover" class="np-m-cover" src="" alt="" width="16" height="16" onerror="this.style.display='none'">
     <svg id="np-m-icon" class="np-m-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
     <div class="np-pulse"><div class="np-pd"></div><div class="np-pr"></div></div>
-    <div class="np-tip">
-      <b id="np-tip-name">我的歌单</b>
-      <small id="np-tip-artist">--</small>
-    </div>
     <!-- Audio element (hidden) -->
     <audio id="np-audio" preload="auto" style="position:absolute;bottom:-100px;right:0;width:1px;height:1px;opacity:0;pointer-events:none"></audio>
+  </div>
+  <!-- Sits outside .np-mini so the vinyl's overflow:hidden doesn't clip it -->
+  <div class="np-tip">
+    <b id="np-tip-name">我的歌单</b>
+    <small id="np-tip-artist">--</small>
   </div>
 </div>
 

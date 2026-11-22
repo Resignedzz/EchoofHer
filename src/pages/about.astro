@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import PageHeader from '../components/PageHeader.astro';
 
 // Tool icon mapping using Simple Icons (SVG data URIs)
 // Each icon is a 24x24 SVG
@@ -47,10 +48,8 @@ const skills = [
 <BaseLayout title="关于 - resigned's blog" description="关于我">
   <Header />
 
-  <main class="flex-1 w-full max-w-3xl mx-auto px-4 py-12 sm:px-6">
-    <h1 class="font-mono text-3xl sm:text-4xl font-bold tracking-tight mb-8 animate-fade-in">
-      <span class="text-[var(--accent)]">&gt;</span> 关于我
-    </h1>
+  <main class="flex-1 w-full max-w-4xl mx-auto px-4 py-12 sm:px-6">
+    <PageHeader title="关于我" />
 
     <div class="space-y-8 text-[var(--text)] leading-relaxed">
       <!-- Intro -->

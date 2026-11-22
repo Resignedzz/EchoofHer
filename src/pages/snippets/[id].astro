@@ -3,6 +3,7 @@ import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
+import Breadcrumb from '../../components/Breadcrumb.astro';
 
 export async function getStaticPaths() {
   const snippets = await getCollection('snippets');
@@ -23,7 +24,12 @@ const formatDate = (d: Date) =>
 <BaseLayout title={`${title} — resigned's blog`} description={description}>
   <Header />
 
-  <main class="flex-1 w-full max-w-3xl mx-auto px-4 py-12 sm:px-6">
+  <main class="flex-1 w-full max-w-4xl mx-auto px-4 py-12 sm:px-6">
+    <Breadcrumb items={[
+      { label: '首页', href: '/' },
+      { label: '片段', href: '/snippets' },
+      { label: title },
+    ]} />
     <article class="prose-custom">
       <!-- Snippet header -->
       <header class="mb-8">

@@ -1,20 +1,52 @@
 ---
 const year = new Date().getFullYear();
+// 博客上线日期（根据第一篇文章 frontmatter）
+const launchDate = new Date('2026-04-08');
+const daysOnline = Math.floor((new Date().getTime() - launchDate.getTime()) / (1000 * 60 * 60 * 24));
+// 构建日期 (Astro build 时求值，不随访问变化)
+const buildDate = new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
 ---
 
 <footer class="border-t border-[var(--border)] mt-auto">
-  <div class="max-w-3xl mx-auto px-4 sm:px-6 py-6">
-    <div class="font-mono text-xs text-[var(--text-muted)] flex flex-col sm:flex-row items-center justify-between gap-3">
-      <div class="flex items-center gap-2 opacity-60">
-        <span class="text-[var(--accent)]">$</span>
-        <span>echo "Built with Astro" && echo "<span id="footer-year">{year}</span>"</span>
-        <span class="cursor-blink text-[var(--accent)]">█</span>
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+    <div class="font-mono text-xs text-[var(--text-muted)] flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+
+      <!-- Left: 终端风格版权 + 访客计数 -->
+      <div class="space-y-2">
+        <div class="flex items-center gap-2">
+          <span class="text-[var(--accent)]">$</span>
+          <span>echo "Built with <span class="text-[var(--accent-secondary)]">Astro</span> + <span class="text-[var(--accent-secondary)]">Tailwind</span>"</span>
+        </div>
+        <div class="flex items-center gap-2 opacity-70">
+          <span class="text-[var(--accent)]">$</span>
+          <span>echo "© <span id="footer-year">{year}</span> resigned"</span>
+          <span class="cursor-blink text-[var(--accent)]">█</span>
+        </div>
+        <div class="opacity-50 pt-1">
+          访客 <span id="busuanzi_value_site_pv" class="text-[var(--accent)]">—</span> ·
+          独立 IP <span id="busuanzi_value_site_uv" class="text-[var(--accent)]">—</span>
+        </div>
       </div>
-      <div class="flex items-center gap-4 opacity-60">
-        <a href="/rss.xml" class="hover:text-[var(--accent)] hover:opacity-100 transition-colors">RSS</a>
-        <span>·</span>
-        <a href="https://github.com/Resignedzz" target="_blank" rel="noopener" class="hover:text-[var(--accent)] hover:opacity-100 transition-colors">GitHub</a>
+
+      <!-- Mid: 链接 -->
+      <div class="md:text-center space-y-1.5">
+        <div class="flex items-center gap-3 flex-wrap md:justify-center">
+          <a href="/rss.xml" class="hover:text-[var(--accent)] transition-colors">RSS</a>
+          <span class="opacity-30">·</span>
+          <a href="https://github.com/Resignedzz" target="_blank" rel="noopener" class="hover:text-[var(--accent)] transition-colors">GitHub</a>
+          <span class="opacity-30">·</span>
+          <a href="/archive" class="hover:text-[var(--accent)] transition-colors">归档</a>
+          <span class="opacity-30">·</span>
+          <a href="/friends" class="hover:text-[var(--accent)] transition-colors">友链</a>
+        </div>
       </div>
+
+      <!-- Right: 运行天数 + 构建信息 -->
+      <div class="md:text-right space-y-1 opacity-60">
+        <div>运行 <span class="text-[var(--accent)]">{daysOnline}</span> 天</div>
+        <div>构建 {buildDate}</div>
+      </div>
+
     </div>
   </div>
 </footer>

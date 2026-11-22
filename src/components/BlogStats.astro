@@ -3,7 +3,6 @@
 import { getCollection } from 'astro:content';
 
 const posts = (await getCollection('blog', ({ data }) => !data.draft));
-const snippets = (await getCollection('snippets'));
 
 // Total word count (Chinese chars + English words)
 function countWords(text: string): number {
@@ -15,10 +14,6 @@ function countWords(text: string): number {
 let totalWords = 0;
 for (const post of posts) {
   totalWords += countWords(post.body || '');
-  if (post.data.description) totalWords += countWords(post.data.description);
-}
-for (const s of snippets) {
-  totalWords += countWords(s.body || '');
 }
 
 const avgWordsPerPost = posts.length > 0 ? Math.round(totalWords / posts.length) : 0;

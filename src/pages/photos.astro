@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import PageHeader from '../components/PageHeader.astro';
 import { getCollection } from 'astro:content';
 
 const posts = await getCollection('blog', ({ data }) => !data.draft);
@@ -32,11 +33,8 @@ for (const post of posts) {
 <BaseLayout title="图库 — resigned's blog" description="所有文章中的图片">
   <Header />
 
-  <main class="flex-1 w-full max-w-5xl mx-auto px-4 py-12 sm:px-6">
-    <h1 class="font-mono text-3xl font-bold mb-2 flex items-center gap-2">
-      <span class="text-[var(--accent)]">📷</span> 图库
-    </h1>
-    <p class="text-[var(--text-muted)] mb-8">共 {photos.length} 张图片</p>
+  <main class="flex-1 w-full max-w-6xl mx-auto px-4 py-12 sm:px-6">
+    <PageHeader title={`📷 图库`} desc={`共 ${photos.length} 张图片`} prompt={false} />
 
     {photos.length === 0 ? (
       <div class="cyber-card p-8 text-center">
@@ -62,64 +60,6 @@ for (const post of posts) {
 
   <Footer />
 </BaseLayout>
-
-<style is:inline>
-.masonry {
-  columns: 3;
-  column-gap: 12px;
-}
-@media (max-width: 768px) { .masonry { columns: 2; } }
-@media (max-width: 480px) { .masonry { columns: 1; } }
-.masonry-item {
-  break-inside: avoid;
-  margin-bottom: 12px;
-  display: block;
-  border-radius: 8px;
-  overflow: hidden;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  transition: transform .25s, border-color .25s;
-}
-.masonry-item:hover {
-  transform: translateY(-2px);
-  border-color: var(--accent-secondary);
-}
-.masonry-img-wrap {
-  position: relative;
-  line-height: 0;
-}
-.masonry-img {
-  width: 100%;
-  display: block;
-  transition: transform .4s;
-}
-.masonry-item:hover .masonry-img {
-  transform: scale(1.04);
-}
-.masonry-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(0,0,0,.7) 0%, transparent 50%);
-  opacity: 0;
-  transition: opacity .3s;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 12px;
-}
-.masonry-item:hover .masonry-overlay { opacity: 1; }
-.masonry-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: #fff;
-  font-family: 'JetBrains Mono', monospace;
-}
-.masonry-alt {
-  font-size: 10px;
-  color: rgba(255,255,255,.6);
-  margin-top: 2px;
-}
-</style>
 
 <!-- Apply masonry layout after images load to prevent broken columns -->
 <script is:inline>

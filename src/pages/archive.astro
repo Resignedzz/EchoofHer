@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import PageHeader from '../components/PageHeader.astro';
 import { getCollection } from 'astro:content';
 
 const posts = (await getCollection('blog', ({ data }) => !data.draft))
@@ -24,13 +25,8 @@ const formatDate = (d: Date) =>
 <BaseLayout title="归档 - resigned's blog" description="文章归档">
   <Header />
 
-  <main class="flex-1 w-full max-w-3xl mx-auto px-4 py-12 sm:px-6">
-    <h1 class="font-mono text-3xl sm:text-4xl font-bold tracking-tight mb-2">
-      <span class="text-[var(--accent)]">&gt;</span> 归档
-    </h1>
-    <p class="text-sm text-[var(--text-muted)] font-mono mb-10 animate-fade-in">
-      共 {posts.length} 篇文章
-    </p>
+  <main class="flex-1 w-full max-w-6xl mx-auto px-4 py-12 sm:px-6">
+    <PageHeader title="归档" desc={`共 ${posts.length} 篇文章`} />
 
     <div class="space-y-10">
       {years.map((year) => (
@@ -38,7 +34,7 @@ const formatDate = (d: Date) =>
           <div class="flex items-center gap-3 mb-5">
             <h2 class="font-mono text-2xl font-bold text-gradient">{year}</h2>
             <div class="flex-1 h-px" style="background: var(--border);"></div>
-            <span class="text-[10px] font-mono text-[var(--text-muted)] opacity-50">{postsByYear[Number(year)].length} 绡?/span>
+            <span class="text-[10px] font-mono text-[var(--text-muted)] opacity-50">{postsByYear[Number(year)].length} 篇</span>
           </div>
           <div class="relative border-l-2 border-[var(--border)] pl-6 space-y-1">
             {/* Timeline dot decoration */}
@@ -78,10 +74,9 @@ const formatDate = (d: Date) =>
     </div>
 
     {posts.length === 0 && (
-      <p class="text-[var(--text-muted)] font-mono">杩樻病鏈夋枃绔?鉁嶏笍</p>
+      <p class="text-[var(--text-muted)] font-mono">还没有文章 📝</p>
     )}
   </main>
 
   <Footer />
 </BaseLayout>
-

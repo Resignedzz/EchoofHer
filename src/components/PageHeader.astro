@@ -1,0 +1,26 @@
+---
+/**
+ * 统一页面头部（列表页用）
+ * - 终端风格：JetBrains Mono + ">" prompt 前缀 + 渐变底线
+ * - 首页保留完整 HeroGlobe，不使用本组件
+ *
+ * @param {string} title       标题文本（会自动加 ">" 前缀）
+ * @param {string} [desc]      可选的描述行
+ * @param {boolean} [prompt]   是否显示 ">" 终端提示符，默认 true
+ */
+interface Props {
+  title: string;
+  desc?: string;
+  prompt?: boolean;
+}
+
+const { title, desc, prompt = true } = Astro.props;
+---
+
+<header class="page-header stagger-in" aria-label={`${title} 页面头部`}>
+  <h1 class="page-header-title">
+    {prompt && <span class="prompt">&gt;</span>}
+    <span>{title}</span>
+  </h1>
+  {desc && <p class="page-header-desc">{desc}</p>}
+</header>

@@ -3,6 +3,7 @@ import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
+import Breadcrumb from '../../components/Breadcrumb.astro';
 
 export async function getStaticPaths() {
   const books = await getCollection('books');
@@ -30,7 +31,12 @@ const formatDate = (d: Date) =>
 <BaseLayout title={`${title} - 阅读笔记`} description={`《${title}》-${author} 的阅读笔记`}>
   <Header />
 
-  <main class="flex-1 w-full max-w-3xl mx-auto px-4 py-12 sm:px-6">
+  <main class="flex-1 w-full max-w-4xl mx-auto px-4 py-12 sm:px-6">
+    <Breadcrumb items={[
+      { label: '首页', href: '/' },
+      { label: '书单', href: '/books' },
+      { label: title },
+    ]} />
     <article class="prose-custom">
       <!-- Book header -->
       <header class="mb-10">

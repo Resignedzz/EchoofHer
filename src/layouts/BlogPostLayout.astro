@@ -7,6 +7,8 @@ import GuestComments from '../components/GuestComments.astro';
 import ImageLightbox from '../components/ImageLightbox.astro';
 import MermaidRenderer from '../components/MermaidRenderer.astro';
 import AISummary from '../components/AISummary.astro';
+import Breadcrumb from '../components/Breadcrumb.astro';
+import type { CollectionEntry } from 'astro:content';
 
 export interface Props {
   frontmatter: {
@@ -17,9 +19,12 @@ export interface Props {
     tags?: string[];
   };
   slug?: string;
+  relatedPosts?: Array<{ id: string; data: { title: string; description?: string; tags?: string[]; date: Date } }>;
+  prevPost?: CollectionEntry<'blog'> | null;
+  nextPost?: CollectionEntry<'blog'> | null;
 }
 
-const { frontmatter, slug } = Astro.props;
+const { frontmatter, slug, relatedPosts = [], prevPost = null, nextPost = null } = Astro.props;
 const { title, description, date, updated, tags = [] } = frontmatter;
 
 const formatDate = (d: Date) => {
@@ -32,10 +37,10 @@ const formatDate = (d: Date) => {
   <Header />
 
   <!-- RSS Banner -->
-  <div id="rss-banner" class="sticky top-14 z-40 border-b border-[var(--accent)]/20" style="background: rgba(0, 255, 136, 0.08); backdrop-filter: blur(12px);">
-    <div class="max-w-3xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
+  <div id="rss-banner" class="sticky top-14 z-40 border-b border-[var(--accent-secondary)]/30" style="background: rgba(120,100,220,0.05); backdrop-filter: blur(12px);">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
       <p class="text-xs font-mono text-[var(--text-muted)]">
-        <span class="text-[var(--accent)]">📡</span> 喜欢这篇文章？通过 <a href="/rss.xml" class="text-[var(--accent)] hover:underline">RSS</a> 订阅更新
+        <span class="text-[var(--accent)]">//</span> 喜欢这篇？通过 <a href="/rss.xml" class="text-[var(--accent-secondary)] hover:text-[var(--accent)] hover:underline transition-colors">RSS</a> 订阅更新
       </p>
       <button id="rss-close" class="text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors text-lg leading-none" aria-label="关闭">
         ×
@@ -43,10 +48,22 @@ const formatDate = (d: Date) => {
     </div>
   </div>
 
-  <main class="flex-1 w-full max-w-3xl mx-auto px-4 py-12 sm:px-6">
+  <!-- Reading progress bar (sticky under banner, z-30 so banner z-40 covers it) -->
+  <div id="progress-wrapper" class="sticky top-14 z-30 pointer-events-none -mt-[2px]">
+    <div class="h-[2px] w-full bg-transparent">
+      <div id="progress-bar" class="h-full origin-left transition-[width] duration-100" style="width: 0%; background: linear-gradient(90deg, var(--accent), var(--accent-secondary));"></div>
+    </div>
+  </div>
+
+  <main class="flex-1 w-full max-w-5xl mx-auto px-4 py-12 sm:px-6">
     <div class="lg:flex lg:gap-12">
       <!-- Main content -->
       <div class="lg:flex-1 min-w-0">
+        <Breadcrumb items={[
+          { label: '首页', href: '/' },
+          { label: '博客', href: '/archive' },
+          { label: title },
+        ]} />
         <article class="prose-custom">
           <!-- Post header -->
           <header class="mb-10">
@@ -91,6 +108,80 @@ const formatDate = (d: Date) => {
           <slot />
         </article>
 
+        <!-- Related Posts -->
+        {relatedPosts.length > 0 && (
+          <section class="mt-14 border-t border-[var(--border)] pt-8">
+            <h2 class="font-mono text-sm font-bold mb-5 flex items-center gap-2 text-[var(--text-muted)]">
+              <span class="text-[var(--accent)]">#</span> 相关文章
+            </h2>
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {relatedPosts.map((rp) => (
+                <a
+                  href={`/blog/${rp.id}`}
+                  class="group block p-4 rounded-lg border border-[var(--border)] hover:border-[var(--accent-secondary)] hover:bg-[var(--accent-dim)] transition-all"
+                >
+                  <h3 class="font-mono text-sm font-bold text-[var(--text)] group-hover:text-[var(--accent)] transition-colors mb-1.5 line-clamp-2">
+                    {rp.data.title}
+                  </h3>
+                  {rp.data.description && (
+                    <p class="text-xs text-[var(--text-muted)] line-clamp-2 leading-relaxed">{rp.data.description}</p>
+                  )}
+                  <div class="mt-2 text-[10px] text-[var(--text-muted)] opacity-40 font-mono">
+                    {rp.data.date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' })}
+                  </div>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <!-- Prev / Next navigation -->
+        {(prevPost || nextPost) && (
+          <nav class="mt-14 border-t border-[var(--border)] pt-8" aria-label="文章翻页">
+            <h2 class="font-mono text-sm font-bold mb-5 flex items-center gap-2 text-[var(--text-muted)]">
+              <span class="text-[var(--accent)]">#</span> 继续阅读
+            </h2>
+            <div class="grid gap-4 sm:grid-cols-2">
+              {prevPost ? (
+                <a href={`/blog/${prevPost.id}`} class="group block p-4 rounded-lg border border-[var(--border)] hover:border-[var(--accent-secondary)] hover:bg-[var(--accent-dim)] transition-all">
+                  <div class="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                    上一篇
+                  </div>
+                  <div class="font-medium text-sm text-[var(--text)] group-hover:text-[var(--accent)] transition-colors line-clamp-2">{prevPost.data.title}</div>
+                  <div class="mt-1.5 text-[10px] text-[var(--text-muted)] opacity-50 font-mono">{formatDate(prevPost.data.date)}</div>
+                </a>
+              ) : (
+                <div class="block p-4 rounded-lg border border-[var(--border)] opacity-40 cursor-default">
+                  <div class="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                    上一篇
+                  </div>
+                  <div class="font-medium text-sm text-[var(--text-muted)]">已经是最新一篇</div>
+                </div>
+              )}
+              {nextPost ? (
+                <a href={`/blog/${nextPost.id}`} class="group block p-4 rounded-lg border border-[var(--border)] hover:border-[var(--accent-secondary)] hover:bg-[var(--accent-dim)] transition-all sm:text-right">
+                  <div class="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-1.5 sm:justify-end">
+                    下一篇
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                  </div>
+                  <div class="font-medium text-sm text-[var(--text)] group-hover:text-[var(--accent)] transition-colors line-clamp-2">{nextPost.data.title}</div>
+                  <div class="mt-1.5 text-[10px] text-[var(--text-muted)] opacity-50 font-mono">{formatDate(nextPost.data.date)}</div>
+                </a>
+              ) : (
+                <div class="block p-4 rounded-lg border border-[var(--border)] opacity-40 cursor-default sm:text-right">
+                  <div class="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-1.5 sm:justify-end">
+                    下一篇
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                  </div>
+                  <div class="font-medium text-sm text-[var(--text-muted)]">已经是最早一篇</div>
+                </div>
+              )}
+            </div>
+          </nav>
+        )}
+
         <!-- Comments -->
         <div class="mt-16 border-t border-[var(--border)] pt-8">
           <h2 class="font-mono text-lg font-bold mb-6 flex items-center gap-2">
@@ -104,7 +195,7 @@ const formatDate = (d: Date) => {
       </div>
 
       <!-- TOC Sidebar -->
-      <aside class="hidden lg:block lg:w-52 shrink-0">
+      <aside class="hidden lg:block lg:w-60 shrink-0">
         <nav id="toc-nav" class="sticky top-36">
           <h2 class="font-mono text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-4 flex items-center gap-2">
             <span class="text-[var(--accent)]">#</span> 目录
@@ -118,18 +209,53 @@ const formatDate = (d: Date) => {
   <Footer />
   <ImageLightbox />
   <MermaidRenderer />
+
+  <!-- Mobile TOC FAB + Bottom Sheet (lg hidden) -->
+  <button
+    id="toc-mobile-fab"
+    class="lg:hidden fixed bottom-20 right-4 z-40 w-11 h-11 rounded-full border border-[var(--border)] text-[var(--text-muted)] bg-[var(--card)] hover:text-[var(--accent)] hover:border-[var(--accent-secondary)] transition-all shadow-lg backdrop-blur"
+    aria-label="打开目录"
+    aria-expanded="false"
+    aria-controls="toc-mobile-sheet"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto">
+      <line x1="8" y1="6" x2="21" y2="6"></line>
+      <line x1="8" y1="12" x2="21" y2="12"></line>
+      <line x1="8" y1="18" x2="21" y2="18"></line>
+      <line x1="3" y1="6" x2="3.01" y2="6"></line>
+      <line x1="3" y1="12" x2="3.01" y2="12"></line>
+      <line x1="3" y1="18" x2="3.01" y2="18"></line>
+    </svg>
+  </button>
+
+  <!-- Mobile TOC Bottom Sheet -->
+  <div id="toc-mobile-backdrop" class="lg:hidden fixed inset-0 z-40 hidden bg-black/50 backdrop-blur-sm" aria-hidden="true"></div>
+  <aside
+    id="toc-mobile-sheet"
+    class="lg:hidden fixed bottom-0 left-0 right-0 z-50 max-h-[60vh] rounded-t-2xl border-t border-[var(--border)] bg-[var(--card)] shadow-2xl transform translate-y-full transition-transform duration-300 ease-out overflow-hidden flex flex-col"
+    role="dialog"
+    aria-label="文章目录"
+    aria-hidden="true"
+  >
+    <div class="px-5 pt-4 pb-3 border-b border-[var(--border)] flex items-center justify-between shrink-0">
+      <h2 class="font-mono text-sm font-bold flex items-center gap-2 text-[var(--text-muted)]">
+        <span class="text-[var(--accent)]">#</span> 目录
+      </h2>
+      <button id="toc-mobile-close" class="text-[var(--text-muted)] hover:text-[var(--accent)] text-xl leading-none" aria-label="关闭目录">×</button>
+    </div>
+    <nav class="overflow-y-auto px-4 py-3">
+      <ul id="toc-mobile-list" class="space-y-2 text-sm border-l border-[var(--border)] pl-4"></ul>
+    </nav>
+  </aside>
 </BaseLayout>
 
 <script>
-  let h = '' + new Date().getHours(); /* unused placeholder */
-
   // Reading time estimate
   const article = document.querySelector('article');
   const readingTimeEl = document.getElementById('reading-time');
   if (article && readingTimeEl) {
     const text = article.textContent || '';
     const wordCount = text.replace(/\s/g, '').length;
-    // Chinese: ~300 chars/min, English: ~200 words/min
     const minutes = Math.ceil(wordCount / 300);
     readingTimeEl.textContent = minutes < 1 ? '< 1 分钟' : `约 ${minutes} 分钟`;
   }
@@ -147,54 +273,136 @@ const formatDate = (d: Date) => {
     });
   }
 
-  // TOC generation
-  const tocList = document.getElementById('toc-list');
+  // ═══ Reading progress bar ═══
+  const progressBar = document.getElementById('progress-bar');
+  if (progressBar) {
+    let ticking = false;
+    const updateProgress = () => {
+      const scrollTop = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const pct = docHeight > 0 ? Math.min(100, (scrollTop / docHeight) * 100) : 0;
+      progressBar.style.width = pct + '%';
+      ticking = false;
+    };
+    window.addEventListener('scroll', () => {
+      if (!ticking) { requestAnimationFrame(updateProgress); ticking = true; }
+    }, { passive: true });
+    updateProgress();
+  }
 
-  if (article && tocList) {
+  // ═══ TOC generation (populates BOTH desktop and mobile lists) ═══
+  const tocList = document.getElementById('toc-list');
+  const tocMobileList = document.getElementById('toc-mobile-list');
+
+  if (article && (tocList || tocMobileList)) {
     const headings = article.querySelectorAll('h2, h3');
+
+    const buildTocItem = (heading, index) => {
+      const id = `toc-${index}`;
+      heading.id = id;
+
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = `#${id}`;
+      a.textContent = heading.textContent || '';
+      a.className = heading.tagName === 'H3'
+        ? 'block text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors text-xs pl-2'
+        : 'block text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors font-medium';
+      return { li, a };
+    };
+
+    const handleHeadingClick = (heading, e, closeSheetFn) => {
+      e.preventDefault();
+      heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (typeof closeSheetFn === 'function') closeSheetFn();
+    };
 
     if (headings.length > 0) {
       headings.forEach((heading, index) => {
-        const id = `toc-${index}`;
-        heading.id = id;
+        const { li, a } = buildTocItem(heading, index);
 
-        const li = document.createElement('li');
-        const a = document.createElement('a');
-        a.href = `#${id}`;
-        a.textContent = heading.textContent || '';
-        a.className = heading.tagName === 'H3'
-          ? 'block text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors text-xs pl-2'
-          : 'block text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors font-medium';
-
+        // Desktop list item: smooth scroll only
         a.addEventListener('click', (e) => {
-          e.preventDefault();
-          heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          handleHeadingClick(heading, e);
         });
 
         li.appendChild(a);
-        tocList.appendChild(li);
+        tocList?.appendChild(li);
+
+        // Mobile list item: same scroll + close sheet
+        if (tocMobileList) {
+          const li2 = document.createElement('li');
+          const a2 = a.cloneNode(true);
+          a2.addEventListener('click', (e) => {
+            handleHeadingClick(heading, e, closeTocMobileSheet);
+          });
+          li2.appendChild(a2);
+          tocMobileList.appendChild(li2);
+        }
       });
 
-      // Active section highlight on scroll
-      const tocLinks = tocList.querySelectorAll('a');
+      // Active section highlight — observer drives BOTH lists
+      const allLinks = () => [
+        ...(tocList?.querySelectorAll('a') ?? []),
+        ...(tocMobileList?.querySelectorAll('a') ?? []),
+      ];
       const observer = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
-              tocLinks.forEach((link) => link.classList.remove('text-[var(--accent)]'));
-              const activeLink = tocList.querySelector(`a[href="#${entry.target.id}"]`);
-              activeLink?.classList.add('text-[var(--accent)]');
+              allLinks().forEach((link) => link.classList.remove('text-[var(--accent)]'));
+              allLinks().forEach((link) => {
+                if (link.getAttribute('href') === '#' + entry.target.id) {
+                  link.classList.add('text-[var(--accent)]');
+                }
+              });
             }
           });
         },
         { rootMargin: '-20% 0px -80% 0px' }
       );
-
       headings.forEach((h) => observer.observe(h));
     } else {
-      // No headings, hide TOC
-      const tocNav = document.getElementById('toc-nav');
-      tocNav?.classList.add('hidden');
+      // No headings → hide desktop aside + mobile FAB
+      document.getElementById('toc-nav')?.classList.add('hidden');
+      document.getElementById('toc-mobile-fab')?.classList.add('hidden');
     }
   }
+
+  // ═══ Mobile TOC Sheet toggling ═══
+  const tocFab = document.getElementById('toc-mobile-fab');
+  const tocSheet = document.getElementById('toc-mobile-sheet');
+  const tocBackdrop = document.getElementById('toc-mobile-backdrop');
+  const tocCloseBtn = document.getElementById('toc-mobile-close');
+
+  function openTocMobileSheet() {
+    if (!tocSheet) return;
+    tocSheet.classList.remove('translate-y-full');
+    tocBackdrop?.classList.remove('hidden');
+    tocBackdrop?.classList.add('flex');
+    tocSheet.setAttribute('aria-hidden', 'false');
+    tocFab?.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeTocMobileSheet() {
+    if (!tocSheet) return;
+    tocSheet.classList.add('translate-y-full');
+    tocBackdrop?.classList.add('hidden');
+    tocBackdrop?.classList.remove('flex');
+    tocSheet.setAttribute('aria-hidden', 'true');
+    tocFab?.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+  }
+
+  tocFab?.addEventListener('click', () => {
+    const hidden = tocSheet?.classList.contains('translate-y-full');
+    hidden ? openTocMobileSheet() : closeTocMobileSheet();
+  });
+  tocCloseBtn?.addEventListener('click', closeTocMobileSheet);
+  tocBackdrop?.addEventListener('click', closeTocMobileSheet);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && tocSheet?.getAttribute('aria-hidden') === 'false') {
+      closeTocMobileSheet();
+    }
+  });
 </script>
